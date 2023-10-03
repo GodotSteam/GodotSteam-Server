@@ -35,14 +35,16 @@ jobs:
           repository: "godotengine/godot"
           path: "godot"
           ref: ${{ inputs.godot_tag }}
-      # Checkout current source of GodotSteam
-      - name: Checkout GodotSteam
+
+      # Checkout current source of GodotSteam Server
+      - name: Checkout GodotSteam Server
         uses: actions/checkout@v3
         with:
-          path: "godotsteam"
-      - name: Copy GodotSteam Module
+          path: "godotsteam_server"
+      - name: Copy GodotSteam Server Module
         run: |
-          cp -r godotsteam godot/modules/godotsteam
+          cp -r godotsteam_server godot/modules/godotsteam_server
+
       # Checkout Steamworks SDK
       - name: Checkout Steamworks SDK
         uses: actions/checkout@v3
@@ -53,9 +55,10 @@ jobs:
           ref: ${{ inputs.steamworks_sdk_tag }}
       - name: Copy Steamworks
         run: |
-          cp -r steamworks/public godot/modules/godotsteam/sdk
-          cp -r steamworks/redistributable_bin godot/modules/godotsteam/sdk
-          ls -la godot/modules/godotsteam/sdk
+          cp -r steamworks/public godot/modules/godotsteam_server/sdk
+          cp -r steamworks/redistributable_bin godot/modules/godotsteam_server/sdk
+          ls -la godot/modules/godotsteam_server/sdk
+
       # Install the Vulkan SDK, script copied from the official Godot build scripts.
       - name: Install Vulkan SDK
         run: |
@@ -78,6 +81,8 @@ jobs:
       - name: Install Build Tools
         run: |
           brew install scons yasm
+
+      # Compile the server module
       - name: Build MacOS
         working-directory: "godot"
         run: |
@@ -93,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: macos-libsteam-api-dylib
-          path: godot/modules/godotsteam/sdk/redistributable_bin/osx/libsteam_api.dylib
+          path: godot/modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib
           if-no-files-found: error
           retention-days: 1
       - name: Zip the MacOS Apps
