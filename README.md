@@ -41,7 +41,7 @@ Known Issues
 Quick How-To
 ---
 Obtain the plugin through one of two ways:
-- Visit the [Godot Asset Library](https://godotengine.org/asset-library/asset/0000) either through the website or in the editor and search for GodotSteam Server.
+- Visit the [Godot Asset Library](https://godotengine.org/asset-library/asset/2218) either through the website or in the editor and search for GodotSteam Server.
 - Download this repo and unzip it into the base of your game project.
 
 You will need to add the steam_appid.txt file with 480 or your game's app ID to where ever you have your Godot editor.  It should just work without having to do anything else.
