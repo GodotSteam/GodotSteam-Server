@@ -35,8 +35,8 @@ env.Append(LIBS=[
 ])
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
-env.Append(CPPPATH=['godotsteam-server/'])
-sources = Glob('godotsteam-server/*.cpp')
+env.Append(CPPPATH=['godotsteam_server/'])
+sources = Glob('godotsteam_server/*.cpp')
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
