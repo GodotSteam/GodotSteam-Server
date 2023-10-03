@@ -7,6 +7,8 @@ Additional flavors include:
 - [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdextension)
 - [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative)
 - [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/server3)
+- [Server GDExtension](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdextension)
+- [Server GDNative](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdnative)
 
 Documentation
 ---
