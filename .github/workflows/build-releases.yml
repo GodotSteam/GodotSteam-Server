@@ -35,7 +35,7 @@ jobs:
           gsver=${{ inputs.godotsteam_version }}
           gtag=${{ inputs.godot_tag }}
           gtag=${gtag//[.]/}
-          tag=g${gtag%-*}-s${sdktag:0-3}-gs${gsver//[.]/}
+          tag=g${gtag%-*}-s${sdktag:0-3}-gss${gsver//[.]/}
           echo "zip_tag=${tag}" >> $GITHUB_OUTPUT
       - name: set_godot_version
         id: set_godot_version
@@ -116,12 +116,12 @@ jobs:
 #      - name: Create Linux Bundle
 #        run: |
 #          echo "480" >> files/steam_appid.txt
-#          zip -j linux64-${{ needs.env-setup.outputs.zip_tag }}.zip files/*
+#          zip -j linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip files/*
 #      - name: Upload Win64 bundle artifact
 #        uses: actions/upload-artifact@v3
 #        with:
-#          name: linux64-${{ needs.env-setup.outputs.zip_tag }}.zip
-#          path: linux64-${{ needs.env-setup.outputs.zip_tag }}.zip
+#          name: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
+#          path: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
 #          if-no-files-found: error
 #          retention-days: 1
 
@@ -148,7 +148,7 @@ jobs:
       steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
       godot_tag: ${{ inputs.godot_tag }}
       binary_name: godot.windows.template_release.x86_64.exe
-      export_name: "win64-${{ needs.env-setup.outputs.godot_version }}-template.exe"
+      export_name: "win64-server-${{ needs.env-setup.outputs.godot_version }}-template.exe"
       build_params: "-j4 platform=windows production=yes tools=no target=template_release debug_symbols=no warnings=extra"
       artifact_name: "win64-release-template"
     secrets:
@@ -162,7 +162,7 @@ jobs:
       steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
       godot_tag: ${{ inputs.godot_tag }}
       binary_name: godot.windows.template_debug.x86_64.exe
-      export_name: "win64-${{ needs.env-setup.outputs.godot_version }}-debug-template.exe"
+      export_name: "win64-server-${{ needs.env-setup.outputs.godot_version }}-debug-template.exe"
       build_params: "-j4 platform=windows production=yes tools=no target=template_debug debug_symbols=no warnings=extra"
       artifact_name: "win64-debug-template"
     secrets:
@@ -196,12 +196,12 @@ jobs:
       - name: Create Windows Bundle
         run: |
           echo "480" >> files/steam_appid.txt
-          zip -j win64-${{needs.env-setup.outputs.zip_tag}}.zip files/*
+          zip -j win64-server-${{needs.env-setup.outputs.zip_tag}}.zip files/*
       - name: Upload Win64 bundle artifact
         uses: actions/upload-artifact@v3
         with:
-          name: win64-${{needs.env-setup.outputs.zip_tag}}.zip
-          path: win64-${{needs.env-setup.outputs.zip_tag}}.zip
+          name: win64-server-${{needs.env-setup.outputs.zip_tag}}.zip
+          path: win64-server-${{needs.env-setup.outputs.zip_tag}}.zip
           if-no-files-found: error
           retention-days: 1
 
