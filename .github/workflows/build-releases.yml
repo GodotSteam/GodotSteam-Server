@@ -380,21 +380,21 @@ jobs:
         with:
           name: win_steam_api_64
           path: files
-      - name: Download Linux Release Template
-        uses: actions/download-artifact@v3
-        with:
-          name: linux-release-template
-          path: files
-      - name: Download Linux Debug Template
-        uses: actions/download-artifact@v3
-        with:
-          name: linux-debug-template
-          path: files
-      - name: Download Linux Steam API
-        uses: actions/download-artifact@v3
-        with:
-          name: linux-libsteam-api-so
-          path: files
+#      - name: Download Linux Release Template
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: linux-release-template
+#          path: files
+#      - name: Download Linux Debug Template
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: linux-debug-template
+#          path: files
+#      - name: Download Linux Steam API
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: linux-libsteam-api-so
+#          path: files
       - name: Download MacOS x86_64 Release Template
         uses: actions/download-artifact@v3
         with:
@@ -441,11 +441,11 @@ jobs:
           zip -r ./macos.zip ./macos_template.app
           popd
           rm -r files/macos_template.app/
-          zip -j godotsteam-${{ needs.env-setup.outputs.zip_tag }}-templates.zip files/*
+          zip -j godotsteam-server-${{ needs.env-setup.outputs.zip_tag }}-templates.zip files/*
       - name: Upload template bundle artifact
         uses: actions/upload-artifact@v3
         with:
-          name: godotsteam-${{ needs.env-setup.outputs.zip_tag }}-templates.zip
-          path: godotsteam-${{ needs.env-setup.outputs.zip_tag }}-templates.zip
+          name: godotsteam-server-${{ needs.env-setup.outputs.zip_tag }}-templates.zip
+          path: godotsteam-server-${{ needs.env-setup.outputs.zip_tag }}-templates.zip
           if-no-files-found: error
           retention-days: 1
