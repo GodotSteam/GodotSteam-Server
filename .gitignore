@@ -8,5 +8,4 @@
 **/*.obj
 **/*.VC.db
 
-bin/
 .sconsign.dblite
