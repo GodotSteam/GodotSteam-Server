@@ -5,7 +5,7 @@ import os
 env = SConscript("godot-cpp/SConstruct")
 
 # Local dependency paths, adapt them to your setup
-steam_lib_path = "godotsteam-server/sdk/redistributable_bin"
+steam_lib_path = "godotsteam_server/sdk/redistributable_bin"
 
 # Check our platform specifics
 if env['platform'] in ('macos', 'osx'):
@@ -29,7 +29,7 @@ elif env['platform'] == "windows":
 
 # make sure our binding library is properly includes
 env.Append(LIBPATH=[steam_lib_path])
-env.Append(CPPPATH=['godotsteam-server/sdk/public'])
+env.Append(CPPPATH=['godotsteam_server/sdk/public'])
 env.Append(LIBS=[
     steamworks_library.replace(".dll", "")
 ])
@@ -40,14 +40,14 @@ sources = Glob('godotsteam-server/*.cpp')
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
-        "bin/libgodotsteam-server.{}.{}.framework/libgodotsteam-server.{}.{}".format(
+        "bin/libgodotsteam_server.{}.{}.framework/libgodotsteam_server.{}.{}".format(
             env["platform"], env["target"], env["platform"], env["target"]
         ),
         source=sources,
     )
 else:
     library = env.SharedLibrary(
-        "bin/libgodotsteam-server{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        "bin/libgodotsteam_server{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
         source=sources,
     )
 
