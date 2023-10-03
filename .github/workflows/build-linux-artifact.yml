@@ -102,9 +102,9 @@ jobs:
       # Build the module and make it available
       - name: Build Linux Editor
         working-directory: "godot"
-        env:
-          SCONS_CACHE: ${{github.workspace}}/.scons_cache/
-          SCONS_CACHE_LIMIT: 7168
+#        env:
+#          SCONS_CACHE: ${{github.workspace}}/.scons_cache/
+#          SCONS_CACHE_LIMIT: 7168
         run: |
           PATH=/opt/x86_64-godot-linux-gnu_sdk-buildroot/bin:$PATH scons ${{ inputs.build_params }}
           mv bin/${{ inputs.binary_name }} bin/${{ inputs.export_name }}
