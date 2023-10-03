@@ -1,0 +1,12 @@
+**/.vs/
+**/*.sdf
+**/*.VC.opendb
+**/Debug/
+**/Generated\ Files/
+**/Release/
+**/ipch/
+**/*.obj
+**/*.VC.db
+
+bin/
+.sconsign.dblite
