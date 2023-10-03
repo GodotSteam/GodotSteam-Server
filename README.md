@@ -36,7 +36,7 @@ Known Issues
 
 "Quick" How-To
 ---
-For complete instructions on how to build the Godot 3.x version of GodotSteam Server, [please refer to our documentation's 'How-To Servers' section.](https://godotsteam.com/howto/server/) It will have the most up-to-date information.
+For complete instructions on how to build the Godot 3.x version of GodotSteam Server from scratch, [please refer to our documentation's 'How-To Servers' section.](https://godotsteam.com/howto/server/) It will have the most up-to-date information.
 
 Alternatively, you can just [download the pre-compiled versions in our Releases section](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases) and skip compiling it yourself!
 
