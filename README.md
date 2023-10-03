@@ -1,13 +1,15 @@
 # GodotSteam Server for Godot 3.x
-An open-source and fully functional Steamworks server SDK / API module and plug-in for the Godot Game Engine (version 3.x). For the Windows, Linux, and Mac platforms. 
+An open-source and fully functional Steamworks SDK / API server module and plug-in for the Godot Game Engine (version 3.x). For the Windows, Linux, and Mac platforms. 
 
 Additional flavors include:
 - [Godot 2.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot2)
 - [Godot 3.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/master)
 - [Godot 4.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot4)
-- [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative)
 - [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdextension)
+- [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative)
 - [Server 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/godot4)
+- [Server GDExtension](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdextension)
+- [Server GDNative](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdnative)
 
 Documentation
 ---
