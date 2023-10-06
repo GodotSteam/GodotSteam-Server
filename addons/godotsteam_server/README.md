@@ -1,25 +1,29 @@
 # GodotSteam Server for GDExtension
-An open-source and fully functional Steamworks SDK / API server module and plug-in for the Godot Game Engine (version 4.x). For the Windows 32/64-bit, Linux 32/64-bit, and Mac uinversal platforms. 
+An open-source and fully functional Steamworks SDK / API server module and plug-in for the Godot Game Engine (version 4.x). For the Windows, Linux, and Mac platforms.
 
 Additional flavors include:
-- [Godot 2.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot2)
 - [Godot 3.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot3)
 - [Godot 4.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot4)
+- [Godot 2.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot2)
+- [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdextension)
 - [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative)
-- [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/server3)
-- [Server 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/server4)
-- [Server GDExtension](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdextension)
+- [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/godot3)
+- [Server 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/godot4)
 - [Server GDNative](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdnative)
 
 Documentation
 ---
 [Documentation is available here](https://godotsteam.com/).
 
-Feel free to chat with us about Godotteam on the [CoaguCo Discord server](https://discord.gg/SJRSq6K).
+Feel free to chat with us about GodotSteam on the [CoaguCo Discord server](https://discord.gg/SJRSq6K).
 
 Current Build
 ---
-You can [download pre-compiled versions _(currently v4.0)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
+You can [download pre-compiled versions _(currently v4.0.1)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
+
+**Version 4.0.1 Changes**
+- Changed: how initialization functions work, passing empty string now uses default IP (expected behavior)
+- Fixed: incorrect verbal message from `serverInitEx`
 
 **Version 4.0 Changes**
 - Added: missing server functions from steam_gameserver.h
@@ -30,7 +34,7 @@ You can [download pre-compiled versions _(currently v4.0)_ of this repo here](ht
 - Removed: unused enums, signals, functions
 - Removed: unnecessary classes that are not part of the server build
 
-[You can read more change-logs here](https://godotsteam.com/changelog/server_gdextension/).
+[You can read more change-logs here](https://godotsteam.com/changelog/server4/).
 
 Known Issues
 ---
@@ -38,15 +42,11 @@ Known Issues
 - Steam overlay will not work when running your game from the editor if you are using Forward+ as the renderer.  It does work with Compatibility though.  Your exported project will work perfectly fine in the Steam client, however.
 - **Using MinGW causes crashes.** I strongly recommend you **do not use MinGW** to compile at this time.
 
-Quick How-To
+"Quick" How-To
 ---
-Obtain the plugin through one of two ways:
-- Visit the [Godot Asset Library](https://godotengine.org/asset-library/asset/2218) either through the website or in the editor and search for GodotSteam Server.
-- Download this repo and unzip it into the base of your game project.
+For complete instructions on how to build the GDExtension version of GodotSteam Server from scratch, [please refer to our documentation's 'How-To Modules' section.](https://godotsteam.com/howto/gdextension/) It will have the most up-to-date information.
 
-You will need to add the steam_appid.txt file with 480 or your game's app ID to where ever you have your Godot editor.  It should just work without having to do anything else.
-
-Tinker with Steamworks!
+Alternatively, you can just [download the pre-compiled versions in our Releases section](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases) or [from the Godot Asset Library](https://godotengine.org/asset-library/asset/2218) and skip compiling it yourself!
 
 Usage
 ----------
