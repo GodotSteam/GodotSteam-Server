@@ -21,6 +21,10 @@ Current Build
 ---
 You can [download pre-compiled versions _(currently v3.0)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
 
+**Version 3.0.1 Changes**
+- Changed: how initialization functions work, passing empty string now uses default IP (expected behavior)
+- Fixed: incorrect verbal message from `serverInitEx`
+
 **Version 3.0 Changes**
 - Added: missing server functions from steam_gameserver.h
 - Added: missing enums for server modes
