@@ -54,85 +54,84 @@ jobs:
           echo "godot_version=${gv}" >> $GITHUB_OUTPUT
 
 ################# Linux 64 Builds #################
-#  Commented out for now until custom runners are set up
-#
-#  build-linux-editor:
-#    needs: [env-setup]
-#    uses: ./.github/workflows/build-linux-artifact.yml
-#    with:
-#      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-#      godot_tag: ${{ inputs.godot_tag }}
-#      binary_name: "godot.x11.opt.tools.64"
-#      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-editor.64"
-#      build_params: "-j4 platform=x11 production=yes tools=yes target=release_debug bits=64 warnings=extra"
-#      artifact_name: "linux-editor"
-#    secrets:
-#      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-#      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
-#
-#  build-linux-release-template:
-#    needs: [env-setup]
-#    uses: ./.github/workflows/build-linux-artifact.yml
-#    with:
-#      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-#      godot_tag: ${{ inputs.godot_tag }}
-#      binary_name: "godot.x11.opt.64"
-#      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-template.64"
-#      build_params: "-j4 platform=x11 production=yes tools=no target=release bits=64 warnings=extra"
-#      artifact_name: "linux-release-template"
-#    secrets:
-#      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-#      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
-#
-#  build-linux-debug-template:
-#    needs: [env-setup]
-#    uses: ./.github/workflows/build-linux-artifact.yml
-#    with:
-#      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-#      godot_tag: ${{ inputs.godot_tag }}
-#      binary_name: "godot.x11.opt.debug.64"
-#      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-debug-template.64"
-#      build_params: "-j4 platform=x11 production=yes tools=no target=release_debug bits=64 warnings=extra"
-#      artifact_name: "linux-debug-template"
-#    secrets:
-#      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-#      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}#
-#
-#  create-linux-bundle:
-#    needs: [env-setup, build-linux-editor, build-linux-release-template, build-linux-debug-template]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Download Linux Editor
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-editor
-#          path: files
-#      - name: Download Linux Release Template
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-release-template
-#          path: files
-#      - name: Download Linux Debug Template
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-debug-template
-#          path: files
-#      - name: Download Linux Steam API
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-libsteam-api-so
-#          path: files
-#      - name: Create Linux Bundle
-#        run: |
-#          echo "480" >> files/steam_appid.txt
-#          zip -j linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip files/*
-#      - name: Upload Win64 bundle artifact
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
-#          path: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
-#          if-no-files-found: error
-#          retention-days: 1
+
+  build-linux-editor:
+    needs: [env-setup]
+    uses: ./.github/workflows/build-linux-artifact.yml
+    with:
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
+      godot_tag: ${{ inputs.godot_tag }}
+      binary_name: "godot.x11.opt.tools.64"
+      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-editor.64"
+      build_params: "-j4 platform=x11 production=yes tools=yes target=release_debug bits=64 warnings=extra"
+      artifact_name: "linux-editor"
+    secrets:
+      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
+      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
+
+  build-linux-release-template:
+    needs: [env-setup]
+    uses: ./.github/workflows/build-linux-artifact.yml
+    with:
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
+      godot_tag: ${{ inputs.godot_tag }}
+      binary_name: "godot.x11.opt.64"
+      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-template.64"
+      build_params: "-j4 platform=x11 production=yes tools=no target=release bits=64 warnings=extra"
+      artifact_name: "linux-release-template"
+    secrets:
+      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
+      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
+
+  build-linux-debug-template:
+    needs: [env-setup]
+    uses: ./.github/workflows/build-linux-artifact.yml
+    with:
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
+      godot_tag: ${{ inputs.godot_tag }}
+      binary_name: "godot.x11.opt.debug.64"
+      export_name: "linux-server-${{ needs.env-setup.outputs.godot_version }}-debug-template.64"
+      build_params: "-j4 platform=x11 production=yes tools=no target=release_debug bits=64 warnings=extra"
+      artifact_name: "linux-debug-template"
+    secrets:
+      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
+      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}#
+
+  create-linux-bundle:
+    needs: [env-setup, build-linux-editor, build-linux-release-template, build-linux-debug-template]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux Editor
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-editor
+          path: files
+      - name: Download Linux Release Template
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-release-template
+          path: files
+      - name: Download Linux Debug Template
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-debug-template
+          path: files
+      - name: Download Linux Steam API
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-libsteam-api-so
+          path: files
+      - name: Create Linux Bundle
+        run: |
+          echo "480" >> files/steam_appid.txt
+          zip -j linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip files/*
+      - name: Upload Win64 bundle artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
+          path: linux64-server-${{ needs.env-setup.outputs.zip_tag }}.zip
+          if-no-files-found: error
+          retention-days: 1
 
 ################# Win64 Builds #################
   
@@ -370,8 +369,7 @@ jobs:
 
 ################ Create Template Bundles #################
   create-templates-bundle:
-    needs: [env-setup, build-win64-release-template, build-win64-debug-template, build-macos-release-template-x86_64, build-macos-debug-template-x86_64, build-macos-release-template-arm64, build-macos-debug-template-arm64]
-#    needs: [env-setup, build-linux-release-template, build-linux-debug-template, build-win64-release-template, build-win64-debug-template, build-macos-release-template-x86_64, build-macos-debug-template-x86_64, build-macos-release-template-arm64, build-macos-debug-template-arm64]
+    needs: [env-setup, build-linux-release-template, build-linux-debug-template, build-win64-release-template, build-win64-debug-template, build-macos-release-template-x86_64, build-macos-debug-template-x86_64, build-macos-release-template-arm64, build-macos-debug-template-arm64]
     runs-on: macos-latest
     steps:
       - name: Download Windows 64 Bit Release Template
@@ -389,21 +387,21 @@ jobs:
         with:
           name: win_steam_api_64
           path: files
-#      - name: Download Linux Release Template
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-release-template
-#          path: files
-#      - name: Download Linux Debug Template
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-debug-template
-#          path: files
-#      - name: Download Linux Steam API
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: linux-libsteam-api-so
-#          path: files
+      - name: Download Linux Release Template
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-release-template
+          path: files
+      - name: Download Linux Debug Template
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-debug-template
+          path: files
+      - name: Download Linux Steam API
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-libsteam-api-so
+          path: files
       - name: Download MacOS x86_64 Release Template
         uses: actions/download-artifact@v3
         with:
