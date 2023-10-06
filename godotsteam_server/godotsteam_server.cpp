@@ -191,19 +191,24 @@ bool SteamServer::serverInit(const String& ip, int game_port, int query_port, Se
 	else{
 		mode = eServerModeAuthenticationAndSecure;
 	}
-	uint32_t ip4 = 0;
-	// Resolve address and convert it
-	if(ip.is_valid_ip_address()){
-		char ip_bytes[4];
-		sscanf(ip.utf8().get_data(), "%hhu.%hhu.%hhu.%hhu", &ip_bytes[3], &ip_bytes[2], &ip_bytes[1], &ip_bytes[0]);
-		ip4 = ip_bytes[0] | ip_bytes[1] << 8 | ip_bytes[2] << 16 | ip_bytes[3] << 24;
+
+	uint32_t ip_address = 0;
+	if(!ip.is_empty()){
+		// Resolve address and convert it
+		if(ip.is_valid_ip_address()){
+			char ip_bytes[4];
+			sscanf(ip.utf8().get_data(), "%hhu.%hhu.%hhu.%hhu", &ip_bytes[3], &ip_bytes[2], &ip_bytes[1], &ip_bytes[0]);
+			ip_address = ip_bytes[0] | ip_bytes[1] << 8 | ip_bytes[2] << 16 | ip_bytes[3] << 24;
+		}
+		else{
+			return false;
+		}
 	}
-	else{
+
+	if(!SteamGameServer_Init(ip_address, (uint16)game_port, (uint16)query_port, mode, version_number.utf8().get_data())){
 		return false;
 	}
-	if(!SteamGameServer_Init(ip4, (uint16)game_port, (uint16)query_port, mode, version_number.utf8().get_data())){
-		return false;
-	}
+
 	return true;
 }
 
@@ -211,11 +216,7 @@ bool SteamServer::serverInit(const String& ip, int game_port, int query_port, Se
 // After calling this function, you should set any additional server parameters, and then logOnAnonymous() or logOn().
 // On success STEAM_API_INIT_RESULT_OK is returned.  Otherwise, if error_message is non-NULL, it will receive a non-localized message that explains the reason for the failure
 Dictionary SteamServer::serverInitEx(const String& ip, int game_port, int query_port, ServerMode server_mode, const String& version_number){
-	Dictionary server_initialize;
-	char error_message[STEAM_MAX_ERROR_MESSAGE] = "IP address is invalid";
-	ESteamAPIInitResult initialize_result = k_ESteamAPIInitResult_FailedGeneric;
-
-	// Convert the server mode back
+		// Convert the server mode back
 	EServerMode mode;
 	if(server_mode == 1){
 		mode = eServerModeNoAuthentication;
@@ -226,13 +227,22 @@ Dictionary SteamServer::serverInitEx(const String& ip, int game_port, int query_
 	else{
 		mode = eServerModeAuthenticationAndSecure;
 	}
-	// Resolve address and convert it
-	if(ip.is_valid_ip_address()){
-		char ip_bytes[4];
-		sscanf(ip.utf8().get_data(), "%hhu.%hhu.%hhu.%hhu", &ip_bytes[3], &ip_bytes[2], &ip_bytes[1], &ip_bytes[0]);
-		uint32_t ip4 = ip_bytes[0] | ip_bytes[1] << 8 | ip_bytes[2] << 16 | ip_bytes[3] << 24;
-		initialize_result = SteamGameServer_InitEx(ip4, (uint16)game_port, (uint16)query_port, mode, version_number.utf8().get_data(), &error_message);
+
+	uint32_t ip_address = 0;
+	if(!ip.is_empty()){
+		// Resolve address and convert it
+		if(ip.is_valid_ip_address()){
+			char ip_bytes[4];
+			sscanf(ip.utf8().get_data(), "%hhu.%hhu.%hhu.%hhu", &ip_bytes[3], &ip_bytes[2], &ip_bytes[1], &ip_bytes[0]);
+			ip_address = ip_bytes[0] | ip_bytes[1] << 8 | ip_bytes[2] << 16 | ip_bytes[3] << 24;
+		}
 	}
+
+	char error_message[STEAM_MAX_ERROR_MESSAGE] = "Server initialized successfully";
+	ESteamAPIInitResult initialize_result = k_ESteamAPIInitResult_FailedGeneric;
+	initialize_result = SteamGameServer_InitEx(ip_address, game_port, query_port, mode, version_number.utf8().get_data(), &error_message);
+
+	Dictionary server_initialize;
 	server_initialize["status"] = initialize_result;
 	server_initialize["verbal"] = error_message;
 
