@@ -1134,7 +1134,7 @@ class SteamServer: public Object {
 		bool setCloudFileNameFilter(uint64_t update_handle, const String& match_cloud_filename);
 		bool setItemContent(uint64_t update_handle, const String& content_folder);
 		bool setItemDescription(uint64_t update_handle, const String& description);
-		bool setItemMetadata(uint64_t update_handle, const String& metadata);
+		bool setItemMetadata(uint64_t update_handle, const String& ugc_metadata);
 		bool setItemPreview(uint64_t update_handle, const String& preview_file);
 		bool setItemTags(uint64_t update_handle, Array tag_array, bool allow_admin_tags = false);
 		bool setItemTitle(uint64_t update_handle, const String& title);

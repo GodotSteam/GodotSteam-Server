@@ -3371,12 +3371,12 @@ String SteamServer::getQueryUGCMetadata(uint64_t query_handle, uint32 index){
 	String query_ugc_metadata = "";
 	if(SteamUGC() != NULL){
 		UGCQueryHandle_t handle = (uint64_t)query_handle;
-		char *metadata = new char[5000];
-		bool success = SteamUGC()->GetQueryUGCMetadata(handle, index, (char*)metadata, 5000);
+		char *ugc_metadata = new char[5000];
+		bool success = SteamUGC()->GetQueryUGCMetadata(handle, index, (char*)ugc_metadata, 5000);
 		if(success){
-			query_ugc_metadata = metadata;
+			query_ugc_metadata = ugc_metadata;
 		}
-		delete[] metadata;
+		delete[] ugc_metadata;
 	}
 	return query_ugc_metadata;
 }
@@ -3707,15 +3707,15 @@ bool SteamServer::setItemDescription(uint64_t update_handle, const String& descr
 }
 
 // Sets arbitrary metadata for an item. This metadata can be returned from queries without having to download and install the actual content.
-bool SteamServer::setItemMetadata(uint64_t update_handle, const String& metadata){
+bool SteamServer::setItemMetadata(uint64_t update_handle, const String& ugc_metadata){
 	if(SteamUGC() == NULL){
 		return false;
 	}
-	if (metadata.utf8().length() > 5000){
+	if (ugc_metadata.utf8().length() > 5000){
 		printf("Metadata cannot be more than %d bytes. Metadata not set.", 5000);
 	}
 	UGCUpdateHandle_t handle = uint64(update_handle);
-	return SteamUGC()->SetItemMetadata(handle, metadata.utf8().get_data());
+	return SteamUGC()->SetItemMetadata(handle, ugc_metadata.utf8().get_data());
 }
 
 // Sets the primary preview image for the item.
@@ -5166,7 +5166,7 @@ void SteamServer::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("setCloudFileNameFilter", "update_handle", "match_cloud_filename"), &SteamServer::setCloudFileNameFilter);
 	ClassDB::bind_method(D_METHOD("setItemContent", "update_handle", "content_folder"), &SteamServer::setItemContent);
 	ClassDB::bind_method(D_METHOD("setItemDescription", "update_handle", "description"), &SteamServer::setItemDescription);
-	ClassDB::bind_method(D_METHOD("setItemMetadata", "update_handle", "metadata"), &SteamServer::setItemMetadata);
+	ClassDB::bind_method(D_METHOD("setItemMetadata", "update_handle", "ugc_metadata"), &SteamServer::setItemMetadata);
 	ClassDB::bind_method(D_METHOD("setItemPreview", "update_handle", "preview_file"), &SteamServer::setItemPreview);
 	ClassDB::bind_method(D_METHOD("setItemTags", "update_handle", "tag_array", "allow_admin_tags"), &SteamServer::setItemTags, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("setItemTitle", "update_handle", "title"), &SteamServer::setItemTitle);

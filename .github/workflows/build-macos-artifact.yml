@@ -73,6 +73,7 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: godot/bin/${{ inputs.export_name }}
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
       - name: Upload MacOS Steam Dylib
         uses: actions/upload-artifact@v4
@@ -80,6 +81,7 @@ jobs:
           name: macos-libsteam-api-dylib
           path: godot/modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
       - name: Zip the MacOS Apps
         run: |
