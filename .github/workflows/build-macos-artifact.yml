@@ -30,7 +30,7 @@ jobs:
     steps:
       # Checkout Godot
       - name: Checkout Godot
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "godotengine/godot"
           path: "godot"
@@ -38,7 +38,7 @@ jobs:
 
       # Checkout current source of GodotSteam Server
       - name: Checkout GodotSteam Server
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: "godotsteam_server"
       - name: Copy GodotSteam Server Module
@@ -47,7 +47,7 @@ jobs:
 
       # Checkout Steamworks SDK
       - name: Checkout Steamworks SDK
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: "steamworks"
           repository: ${{ secrets.steamworks_sdk_repo }}
@@ -88,18 +88,20 @@ jobs:
         run: |
           scons ${{ inputs.build_params }}
       - name: Upload MacOS Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact_name }}
           path: godot/bin/${{ inputs.export_name }}
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
       - name: Upload MacOS Steam Dylib
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-libsteam-api-dylib
           path: godot/modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
       - name: Zip the MacOS Apps
         run: |
@@ -108,16 +110,18 @@ jobs:
           zip -r ./macos_template.zip ./macos_template.app/
           popd
       - name: Upload MacOS Tool App
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-tool-app
           path: godot/misc/dist/macos_tools.zip
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
       - name: Upload MacOS Template App
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-template-app
           path: godot/misc/dist/macos_template.zip
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
