@@ -177,7 +177,7 @@ jobs:
       steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
       steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
 
-  create-linux-bundle:
+  create-linux-server-bundle:
     needs: [env-setup, build-linux-headless-editor, build-linux-headless-release-template, build-linux-headless-debug-template]
     runs-on: ubuntu-latest
     steps:
@@ -449,7 +449,7 @@ jobs:
 
 ################ Create Template Bundles #################
   create-templates-bundle:
-    needs: [env-setup, build-linux-release-template, build-linux-debug-template, build-win64-release-template, build-win64-debug-template, build-macos-release-template-x86_64, build-macos-debug-template-x86_64, build-macos-release-template-arm64, build-macos-debug-template-arm64]
+    needs: [env-setup, build-linux-release-template, build-linux-debug-template, build-linux-headless-release-template, build-linux-headless-debug-template, build-win64-release-template, build-win64-debug-template, build-macos-release-template-x86_64, build-macos-debug-template-x86_64, build-macos-release-template-arm64, build-macos-debug-template-arm64]
     runs-on: macos-latest
     steps:
       - name: Download Windows 64 Bit Release Template
@@ -476,6 +476,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: linux-debug-template
+          path: files
+      - name: Download Linux Headless Release Template
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-headless-release-template
+          path: files
+      - name: Download Linux Headless Debug Template
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-headless-debug-template
           path: files
       - name: Download Linux Steam API
         uses: actions/download-artifact@v4
