@@ -16,6 +16,7 @@
 //
 // Include GodotSteam Server header
 #include "godotsteam_server.h"
+#include "godotsteam_server_constants.h"
 
 // Include some Godot headers
 #include "core/io/ip_address.h"
@@ -24,59 +25,6 @@
 // Include some system headers
 #include "fstream"
 #include "vector"
-
-
-/////////////////////////////////////////////////
-///// DEFINING CONSTANTS
-/////////////////////////////////////////////////
-//
-// Define Steam API constants
-#define API_CALL_INVALID 0x0
-#define APP_ID_INVALID 0x0
-#define AUTH_TICKET_INVALID 0
-#define DEPOT_ID_INVALID 0x0
-#define GAME_EXTRA_INFO_MAX 64
-#define INVALID_BREAKPAD_HANDLE 0
-#define STEAM_ACCOUNT_ID_MASK 0xFFFFFFFF
-#define STEAM_ACCOUNT_INSTANCE_MASK 0x000FFFFF
-#define STEAM_BUFFER_SIZE 255
-#define STEAM_LARGE_BUFFER_SIZE 8160
-#define STEAM_MAX_ERROR_MESSAGE 1024
-#define STEAM_USER_CONSOLE_INSTANCE 2
-#define STEAM_USER_DESKTOP_INSTANCE 1
-#define STEAM_USER_WEB_INSTANCE 4
-#define QUERY_PORT_ERROR 0xFFFE
-#define QUERY_PORT_NOT_INITIALIZED 0xFFFF
-
-// Define Steam Server API constants
-#define FLAG_ACTIVE 0x01
-#define FLAG_DEDICATED 0x04
-#define FLAG_LINUX 0x08
-#define FLAG_NONE 0x00
-#define FLAG_PASSWORDED 0x10
-#define FLAG_PRIVATE 0x20
-#define FLAG_SECURE 0x02
-#define QUERY_PORT_SHARED 0xffff
-
-// Define HTTP constants
-#define HTTPCOOKIE_INVALID_HANDLE 0
-#define HTTPREQUEST_INVALID_HANDLE 0
-
-// Define Inventory constants
-#define INVENTORY_RESULT_INVALID -1
-#define ITEM_INSTANCE_ID_INVALID 0
-
-// Define Networking Message constants
-#define NETWORKING_SEND_UNRELIABLE 0
-#define NETWORKING_SEND_NO_NAGLE 1
-#define NETWORKING_SEND_NO_DELAY 4
-#define NETWORKING_SEND_RELIABLE 8
-
-// Define UGC constants
-#define NUM_UGC_RESULTS_PER_PAGE 50
-#define DEVELOPER_METADATA_MAX 5000
-#define UGC_QUERY_HANDLE_INVALID 0
-#define UGC_UPDATE_HANDLE_INVALID 0
 
 
 /////////////////////////////////////////////////
@@ -132,6 +80,9 @@ SteamServer::SteamServer():
 
 	// Networking Utils callbacks ///////////////
 	callbackRelayNetworkStatus(this, &SteamServer::relay_network_status),
+
+	// Remote Storage callbacks /////////////////
+	callbackLocalFileChanged(this, &SteamServer::local_file_changed),
 
 	// UGC callbacks ////////////////////////////
 	callbackItemDownloaded(this, &SteamServer::item_downloaded),
@@ -193,7 +144,7 @@ bool SteamServer::serverInit(const String& ip, uint16 game_port, uint16 query_po
 	}
 
 	uint32_t ip_address = 0;
-	if(!ip.is_empty()){
+	if(!ip.is_empty() || ip != "0"){
 		// Resolve address and convert it from IP_Address string to uint32_t
 		IPAddress address;
 		if(ip.is_valid_ip_address()){
@@ -232,7 +183,7 @@ Dictionary SteamServer::serverInitEx(const String& ip, uint16 game_port, uint16 
 	}
 
 	uint32_t ip_address = 0;
-	if(!ip.is_empty()){
+	if(!ip.is_empty() || ip != "0"){
 		// Resolve address and convert it from IP_Address string to uint32_t
 		IPAddress address;
 		if(ip.is_valid_ip_address()){
@@ -1036,35 +987,50 @@ void SteamServer::destroyResult(int this_inventory_handle){
 }
 
 //! Grant one item in exchange for a set of other items.
-int32 SteamServer::exchangeItems(const PackedInt64Array output_items, const uint32 output_quantity, const uint64_t input_items, const uint32 input_quantity){
+int32 SteamServer::exchangeItems(const PackedInt64Array output_items, const PackedInt32Array output_quantity, const PackedInt64Array input_items, const PackedInt32Array input_quantity){
 	int32 new_inventory_handle = 0;
 	if(SteamInventory() != NULL){
-		SteamItemDef_t *generated = new SteamItemDef_t[output_quantity];
-		for(uint32 i = 0; i < output_quantity; i++){
-			generated[i] = output_items[i];
+		uint32 total_output = output_items.size();
+		SteamItemDef_t *generated_items = new SteamItemDef_t[total_output];
+		for (uint32 i = 0; i < total_output; i++) {
+			generated_items[i] = output_items[i];
 		}
-		if(SteamInventory()->ExchangeItems(&new_inventory_handle, generated, &output_quantity, 1, (const uint64 *)input_items, &input_quantity, 1)){
+
+		uint32_t* quantity_out = (uint32*) output_quantity.ptr();
+		uint32_t* quantity_in = (uint32*) input_quantity.ptr();
+		
+		int array_size = input_items.size();
+		SteamItemInstanceID_t *input_item_ids = new SteamItemInstanceID_t[array_size];
+		for(int i = 0; i < array_size; i++){
+			input_item_ids[i] = input_items[i];
+		}
+		const SteamItemInstanceID_t *these_item_ids = input_item_ids;
+
+		if (SteamInventory()->ExchangeItems(&new_inventory_handle, generated_items, quantity_out, total_output, these_item_ids, quantity_in, array_size)) {
 			// Update the internally stored handle
 			inventory_handle = new_inventory_handle;
 		}
-		delete[] generated;
+		delete[] generated_items;
+		delete[] input_item_ids;
 	}
 	return new_inventory_handle;
 }
 
 // Grants specific items to the current user, for developers only.
-int32 SteamServer::generateItems(const PackedInt64Array items, const uint32 quantity){
+int32 SteamServer::generateItems(const PackedInt64Array items, const PackedInt32Array quantity){
 	int32 new_inventory_handle = 0;
 	if(SteamInventory() != NULL){
-		SteamItemDef_t *generated = new SteamItemDef_t[quantity];
-		for(uint32 i = 0; i < quantity; i++){
-			generated[i] = items[i];
+		uint32 total_quantity = items.size();
+		SteamItemDef_t *generated_items = new SteamItemDef_t[total_quantity];
+		for (uint32 i = 0; i < total_quantity; i++) {
+			generated_items[i] = items[i];
 		}
-		if(SteamInventory()->GenerateItems(&new_inventory_handle, generated, &quantity, items.size())){
+		uint32_t* this_quantity = (uint32*) quantity.ptr();
+		if (SteamInventory()->GenerateItems(&new_inventory_handle, generated_items, this_quantity, items.size())) {
 			// Update the internally stored handle
 			inventory_handle = new_inventory_handle;
 		}
-		delete[] generated;
+		delete[] generated_items;
 	}
 	return new_inventory_handle;
 }
@@ -1095,13 +1061,22 @@ String SteamServer::getItemDefinitionProperty(uint32 definition, const String& n
 }
 
 // Gets the state of a subset of the current user's inventory.
-int32 SteamServer::getItemsByID(const uint64_t id_array, uint32 count){
+int32 SteamServer::getItemsByID(const PackedInt64Array id_array){
 	int32 new_inventory_handle = 0;
-	if(SteamInventory() != NULL){
-		if(SteamInventory()->GetItemsByID(&new_inventory_handle, (const uint64 *)id_array, count)){
+	if (SteamInventory() != NULL) {
+
+		int array_size = id_array.size();
+		SteamItemInstanceID_t *item_ids = new SteamItemInstanceID_t[array_size];
+		for(int i = 0; i < array_size; i++){
+			item_ids[i] = id_array[i];
+		}
+		const SteamItemInstanceID_t *these_item_ids = item_ids;
+
+		if (SteamInventory()->GetItemsByID(&new_inventory_handle, these_item_ids, array_size)) {
 			// Update the internally stored handle
 			inventory_handle = new_inventory_handle;
 		}
+		delete[] item_ids;
 	}
 	return new_inventory_handle;
 }
@@ -1118,18 +1093,19 @@ uint64_t SteamServer::getItemPrice(uint32 definition){
 }
 
 // After a successful call to RequestPrices, you can call this method to get all the pricing for applicable item definitions. Use the result of GetNumItemsWithPrices as the the size of the arrays that you pass in.
-Array SteamServer::getItemsWithPrices(uint32 length){
+Array SteamServer::getItemsWithPrices(){
 	if(SteamInventory() == NULL){
 		return Array();
 	}
+	uint32 valid_prices = SteamInventory()->GetNumItemsWithPrices();
 	// Create the return array
 	Array price_array;
 	// Create a temporary array
-	SteamItemDef_t *ids = new SteamItemDef_t[length];
-	uint64 *prices = new uint64[length];
-	uint64 *base_prices = new uint64[length];
-	if(SteamInventory()->GetItemsWithPrices(ids, prices, base_prices, length)){
-		for(uint32 i = 0; i < length; i++){
+	SteamItemDef_t *ids = new SteamItemDef_t[valid_prices];
+	uint64 *prices = new uint64[valid_prices];
+	uint64 *base_prices = new uint64[valid_prices];
+	if(SteamInventory()->GetItemsWithPrices(ids, prices, base_prices, valid_prices)){
+		for(uint32 i = 0; i < valid_prices; i++){
 			Dictionary price_group;
 			price_group["item"] = ids[i];
 			price_group["price"] = (uint64_t)prices[i];
@@ -1141,14 +1117,6 @@ Array SteamServer::getItemsWithPrices(uint32 length){
 	delete[] prices;
 	delete[] base_prices;
 	return price_array;
-}
-
-// After a successful call to RequestPrices, this will return the number of item definitions with valid pricing.
-uint32 SteamServer::getNumItemsWithPrices(){
-	if(SteamInventory() == NULL){
-		return 0;
-	}
-	return SteamInventory()->GetNumItemsWithPrices();
 }
 
 // Gets the dynamic properties from an item in an inventory result set.
@@ -1186,7 +1154,12 @@ Array SteamServer::getResultItems(int32 this_inventory_handle){
 		}
 		if(SteamInventory()->GetResultItems((SteamInventoryResult_t)this_inventory_handle, item_array, &size)){
 			for(uint32 i = 0; i < size; i++){
-				items.push_back((uint64_t)item_array[i].m_itemId);
+				Dictionary item_info;
+				item_info["item_id"] = (uint64_t)item_array[i].m_itemId;
+				item_info["item_definition"] = item_array[i].m_iDefinition;
+				item_info["flags"] = item_array[i].m_unFlags;
+				item_info["quantity"] = item_array[i].m_unQuantity;
+				items.append(item_info);
 			}
 		}
 		delete[] item_array;
@@ -1297,13 +1270,15 @@ String SteamServer::serializeResult(int32 this_inventory_handle){
 }
 
 // Starts the purchase process for the user, given a "shopping cart" of item definitions that the user would like to buy. The user will be prompted in the Steam Overlay to complete the purchase in their local currency, funding their Steam Wallet if necessary, etc.
-void SteamServer::startPurchase(const PackedInt64Array items, const uint32 quantity){
+void SteamServer::startPurchase(const PackedInt64Array items, const PackedInt32Array quantity){
 	if(SteamInventory() != NULL){
-		SteamItemDef_t *purchases = new SteamItemDef_t[quantity];
-		for(uint32 i = 0; i < quantity; i++){
+		uint32 total_items = items.size(); // Calculate the size of the items array
+		SteamItemDef_t *purchases = new SteamItemDef_t[total_items];
+		for (uint32 i = 0; i < total_items; i++) {
 			purchases[i] = items[i];
 		}
-		SteamAPICall_t api_call = SteamInventory()->StartPurchase(purchases, &quantity, items.size());
+		uint32_t* these_quantities = (uint32*) quantity.ptr();
+		SteamAPICall_t api_call = SteamInventory()->StartPurchase(purchases, these_quantities, total_items); // Pass the correct size of the items array
 		callResultStartPurchase.Set(api_call, this, &SteamServer::inventory_start_purchase_result);
 		delete[] purchases;
 	}
@@ -1885,12 +1860,12 @@ Array SteamServer::receiveMessagesOnPollGroup(uint32 poll_group, int max_message
 			char identity[STEAM_BUFFER_SIZE];
 			poll_messages[i]->m_identityPeer.ToString(identity, STEAM_BUFFER_SIZE);
 			message["identity"] = identity;
-			message["user_data"] = (uint64_t)poll_messages[i]->m_nConnUserData;
+			message["receiver_user_data"] = (uint64_t)poll_messages[i]->m_nConnUserData;
 			message["time_received"] = (uint64_t)poll_messages[i]->m_usecTimeReceived;
 			message["message_number"] = (uint64_t)poll_messages[i]->m_nMessageNumber;
 			message["channel"] = poll_messages[i]->m_nChannel;
 			message["flags"] = poll_messages[i]->m_nFlags;
-			message["user_data"] = (uint64_t)poll_messages[i]->m_nUserData;
+			message["sender_user_data"] = (uint64_t)poll_messages[i]->m_nUserData;
 			messages.append(message);
 			// Release the message
 			poll_messages[i]->Release();
@@ -1968,12 +1943,18 @@ String SteamServer::getConnectionName(uint32 peer){
 }
 
 // Returns local IP and port that a listen socket created using CreateListenSocketIP is bound to.
-bool SteamServer::getListenSocketAddress(uint32 socket){
-	if(SteamNetworkingSockets() == NULL){
-		return false;
+String SteamServer::getListenSocketAddress(uint32 socket, bool with_port){
+	String socket_address = "";
+	if(SteamNetworkingSockets() != NULL){
+		SteamNetworkingIPAddr address;
+		if(SteamNetworkingSockets()->GetListenSocketAddress((HSteamListenSocket)socket, &address)){
+			char *this_address = new char[48];
+			address.ToString(this_address, 48, with_port);
+			socket_address = String(this_address);
+			delete[] this_address;
+		}
 	}
-	SteamNetworkingIPAddr address;
-	return SteamNetworkingSockets()->GetListenSocketAddress((HSteamListenSocket)socket, &address);
+	return socket_address;
 }
 
 // Get the identity assigned to this interface.
@@ -4489,6 +4470,14 @@ void SteamServer::relay_network_status(SteamRelayNetworkStatus_t* call_data){
 	delete[] debug_message;
 }
 
+// REMOTE STORAGE CALLBACKS /////////////////////
+//
+// Purpose: one or more files for this app have changed locally after syncing to remote session changes.
+// Note: only posted if this happens DURING the local app session.
+void SteamServer::local_file_changed(RemoteStorageLocalFileChange_t* call_data){
+	emit_signal("local_file_changed");
+}
+
 // UGC CALLBACKS ////////////////////////////////
 //
 // Called when a workshop item has been downloaded.
@@ -4589,6 +4578,57 @@ void SteamServer::inventory_request_prices_result(SteamInventoryRequestPricesRes
 
 // REMOTE STORAGE CALL RESULTS //////////////////
 //
+// Response when reading a file asyncrounously with FileReadAsync.
+void SteamServer::file_read_async_complete(RemoteStorageFileReadAsyncComplete_t* call_data, bool io_failure){
+	if(io_failure){
+		steamworksError("file_read_async_complete");
+	}
+	else{
+		uint64_t handle = call_data->m_hFileReadAsync;
+		int result = call_data->m_eResult;
+		uint32 offset = call_data->m_nOffset;
+		uint32 read = call_data->m_cubRead;
+		// Was read complete?
+		PackedByteArray buffer;
+		buffer.resize(read);
+		bool complete = SteamRemoteStorage()->FileReadAsyncComplete(handle, buffer.ptrw(), read);
+		// Create a dictionary and populate it with the results
+		Dictionary file_read;
+		file_read["result"] = result;
+		file_read["handle"] = handle;
+		file_read["buffer"] = buffer;
+		file_read["offset"] = offset;
+		file_read["read"] = read;
+		file_read["complete"] = complete;
+		emit_signal("file_read_async_complete", file_read);
+	}
+}
+
+// Response to a file being shared.
+void SteamServer::file_share_result(RemoteStorageFileShareResult_t* call_data, bool io_failure){
+	if(io_failure){
+		steamworksError("file_share_result");
+	}
+	else{
+		int result = call_data->m_eResult;
+		uint64_t handle = call_data->m_hFile;
+		char name[k_cchFilenameMax];
+		strcpy(name, call_data->m_rgchFilename);
+		emit_signal("file_share_result", result, handle, name);
+	}
+}
+
+// Response when writing a file asyncrounously with FileWriteAsync.
+void SteamServer::file_write_async_complete(RemoteStorageFileWriteAsyncComplete_t* call_data, bool io_failure){
+	if(io_failure){
+		steamworksError("file_write_async_complete");
+	}
+	else{
+		int result = call_data->m_eResult;
+		emit_signal("file_write_async_complete", result);
+	}
+}
+
 // Response when downloading UGC
 void SteamServer::download_ugc_result(RemoteStorageDownloadUGCResult_t* call_data, bool io_failure){
 	if(io_failure){
@@ -4804,8 +4844,8 @@ void SteamServer::item_updated(SubmitItemUpdateResult_t *call_data, bool io_fail
 	}
 	else{
 		EResult result = call_data->m_eResult;
-		bool accept_tos = call_data->m_bUserNeedsToAcceptWorkshopLegalAgreement;
-		emit_signal("item_updated", result, accept_tos);
+		bool need_to_accept_tos = call_data->m_bUserNeedsToAcceptWorkshopLegalAgreement;
+		emit_signal("item_updated", result, need_to_accept_tos);
 	}
 }
 
@@ -4946,10 +4986,9 @@ void SteamServer::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("generateItems", "items", "quantity"), &SteamServer::generateItems);
 	ClassDB::bind_method("getAllItems", &SteamServer::getAllItems);
 	ClassDB::bind_method(D_METHOD("getItemDefinitionProperty", "definition", "name"), &SteamServer::getItemDefinitionProperty);
-	ClassDB::bind_method(D_METHOD("getItemsByID", "id_array", "count"), &SteamServer::getItemsByID);
+	ClassDB::bind_method(D_METHOD("getItemsByID", "id_array"), &SteamServer::getItemsByID);
 	ClassDB::bind_method(D_METHOD("getItemPrice", "definition"), &SteamServer::getItemPrice);
-	ClassDB::bind_method(D_METHOD("getItemsWithPrices", "length"), &SteamServer::getItemsWithPrices);
-	ClassDB::bind_method("getNumItemsWithPrices", &SteamServer::getNumItemsWithPrices);
+	ClassDB::bind_method(D_METHOD("getItemsWithPrices"), &SteamServer::getItemsWithPrices);
 	ClassDB::bind_method(D_METHOD("getResultItemProperty", "index", "name", "this_inventory_handle"), &SteamServer::getResultItemProperty, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("getResultItems", "this_inventory_handle"), &SteamServer::getResultItems, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("getResultStatus", "this_inventory_handle"), &SteamServer::getResultStatus, DEFVAL(0));
@@ -5238,9 +5277,13 @@ void SteamServer::_bind_methods(){
 	ADD_SIGNAL(MethodInfo("relay_network_status", PropertyInfo(Variant::INT, "available"), PropertyInfo(Variant::INT, "ping_measurement"), PropertyInfo(Variant::INT, "available_config"), PropertyInfo(Variant::INT, "available_relay"), PropertyInfo(Variant::STRING, "debug_message")));
 
 	// REMOTE STORAGE SIGNALS ///////////////////
+	ADD_SIGNAL(MethodInfo("file_read_async_complete", PropertyInfo(Variant::DICTIONARY, "file_read")));
+	ADD_SIGNAL(MethodInfo("file_share_result", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "handle"), PropertyInfo(Variant::STRING, "name")));
+	ADD_SIGNAL(MethodInfo("file_write_async_complete", PropertyInfo(Variant::INT, "result")));
 	ADD_SIGNAL(MethodInfo("download_ugc_result", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::DICTIONARY, "download_data")));
 	ADD_SIGNAL(MethodInfo("unsubscribe_item", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "file_id")));
 	ADD_SIGNAL(MethodInfo("subscribe_item", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "file_id")));
+	ADD_SIGNAL(MethodInfo("local_file_changed"));
 
 	// UGC SIGNALS //////////////////////////////
 	ADD_SIGNAL(MethodInfo("add_app_dependency_result", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "file_id"), PropertyInfo(Variant::INT, "app_id")));
@@ -5274,6 +5317,8 @@ void SteamServer::_bind_methods(){
 	BIND_CONSTANT(DEPOT_ID_INVALID); 													// 0x0
 	BIND_CONSTANT(GAME_EXTRA_INFO_MAX); 												// 64
 	BIND_CONSTANT(INVALID_BREAKPAD_HANDLE);												// (BREAKPAD_HANDLE)0
+	BIND_CONSTANT(QUERY_PORT_ERROR); 													// 0xFFFE
+	BIND_CONSTANT(QUERY_PORT_NOT_INITIALIZED); 											// 0xFFFF
 	BIND_CONSTANT(STEAM_ACCOUNT_ID_MASK); 												// 0xFFFFFFFF
 	BIND_CONSTANT(STEAM_ACCOUNT_INSTANCE_MASK); 										// 0x000FFFFF
 	BIND_CONSTANT(STEAM_BUFFER_SIZE);													// 255
@@ -5282,17 +5327,8 @@ void SteamServer::_bind_methods(){
 	BIND_CONSTANT(STEAM_USER_CONSOLE_INSTANCE); 										// 2
 	BIND_CONSTANT(STEAM_USER_DESKTOP_INSTANCE); 										// 1
 	BIND_CONSTANT(STEAM_USER_WEB_INSTANCE); 											// 4
-	BIND_CONSTANT(QUERY_PORT_ERROR); 													// 0xFFFE
-	BIND_CONSTANT(QUERY_PORT_NOT_INITIALIZED); 											// 0xFFFF
 	
 	// STEAM SERVER API CONSTANTS ///////////////
-	BIND_CONSTANT(FLAG_ACTIVE);															// 0x01
-	BIND_CONSTANT(FLAG_DEDICATED);														// 0x04
-	BIND_CONSTANT(FLAG_LINUX);															// 0x08
-	BIND_CONSTANT(FLAG_NONE);															// 0x00
-	BIND_CONSTANT(FLAG_PASSWORDED);														// 0x10
-	BIND_CONSTANT(FLAG_PRIVATE);														// 0x20
-	BIND_CONSTANT(FLAG_SECURE);															// 0x02
 	BIND_CONSTANT(QUERY_PORT_SHARED);													// 0xffff
 
 	// HTTP CONSTANTS ///////////////////////////

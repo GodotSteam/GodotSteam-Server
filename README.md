@@ -1,14 +1,14 @@
 # GodotSteam for Godot Engine
 An open-source and fully functional Steamworks SDK / API module and plug-in for the Godot Game Engine (version 4.x). For the Windows, Linux, and Mac platforms.
 
-Additional flavors include:
-- [Godot 2.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot2)
-- [Godot 3.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot3)
-- [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdextension)
-- [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative)
-- [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/server3)
-- [Server GDExtension](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdextension)
-- [Server GDNative](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdnative)
+Additional Flavors
+---
+Pre-Compiles | Plug-ins | Server | Examples/Demos
+--- | --- | --- | ---
+[Godot 2.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot2)| [GDNative](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdnative) | [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/godot3) | [Godot 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Example-Project/tree/godot3)
+[Godot 3.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot3) | [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam/tree/gdextension) | [Server 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/godot4) |  [Godot 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Example-Project/tree/godot4)
+[Godot 4.x](https://github.com/CoaguCo-Industries/GodotSteam/tree/godot4) | --- | [GDNative](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdnative) | [Server 3.x](https://github.com/CoaguCo-Industries/GodotSteam-Example-Project/tree/server3)
+[Multiplayer Peer](https://github.com/CoaguCo-Industries/GodotSteam/tree/multiplayer-peer)| --- | [GDExtension](https://github.com/CoaguCo-Industries/GodotSteam-Server/tree/gdextension) | [Server 4.x](https://github.com/CoaguCo-Industries/GodotSteam-Example-Project/tree/server4)
 
 Documentation
 ---
@@ -18,20 +18,14 @@ Feel free to chat with us about GodotSteam on the [CoaguCo Discord server](https
 
 Current Build
 ---
-You can [download pre-compiled versions _(currently v4.0)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
+You can [download pre-compiled versions _(currently v4.1)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
 
-**Version 4.0.1 Changes**
-- Changed: how initialization functions work, passing empty string now uses default IP (expected behavior)
-- Fixed: incorrect verbal message from `serverInitEx`
-
-**Version 4.0 Changes**
-- Added: missing server functions from steam_gameserver.h
-- Added: missing enums for server modes
-- Added: in-editor documentation
-- Changed: various improvements under-the-hood
-- Changed: reorganized some constants
-- Removed: unused enums, signals, functions
-- Removed: unnecessary classes that are not part of the server build
+**Version 4.1 Changes**
+- Added: a missing constant
+- Changed: backported various fixes from non-server GodotSteam
+- Changed: updated various function arguments to match non-server GodotSteam
+- Changed: constants now live in `godotsteam_server_constants.h` like non-server GodotSteam
+- Changed: further fixes to initialization functions
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server4/).
 
