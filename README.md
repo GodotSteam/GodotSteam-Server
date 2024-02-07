@@ -19,20 +19,14 @@ Feel free to chat with us about GodotSteam on the [CoaguCo Discord server](https
 
 Current Build
 ---
-You can [download pre-compiled versions _(currently v3.0)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
+You can [download pre-compiled versions _(currently v3.1)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
 
-**Version 3.0.1 Changes**
-- Changed: how initialization functions work, passing empty string now uses default IP (expected behavior)
-- Fixed: incorrect verbal message from `serverInitEx`
-
-**Version 3.0 Changes**
-- Added: missing server functions from steam_gameserver.h
-- Added: missing enums for server modes
-- Added: in-editor documentation
-- Changed: various improvements under-the-hood
-- Changed: reorganized some constants
-- Removed: unused enums, signals, functions
-- Removed: unnecessary classes that are not part of the server build
+**Version 3.1 Changes**
+- Added: a missing constant
+- Changed: backported various fixes from non-server GodotSteam
+- Changed: updated various function arguments to match non-server GodotSteam
+- Changed: constants now live in `godotsteam_server_constants.h` like non-server GodotSteam
+- Changed: further fixes to initialization functions
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server3/).
 

@@ -928,14 +928,13 @@ class SteamServer: public Object {
 		int32 consumeItem(uint64_t item_consume, uint32 quantity);
 		int32 deserializeResult(PoolByteArray buffer);
 		void destroyResult(int32 this_inventory_handle = 0);
-		int32 exchangeItems(const PoolIntArray output_items, const uint32 output_quantity, const uint64_t input_items, const uint32 input_quantity);
-		int32 generateItems(const PoolIntArray items, const uint32 quantity);
+		int32 exchangeItems(const PoolIntArray output_items, const PoolIntArray output_quantity, const PoolIntArray input_items, const PoolIntArray input_quantity);
+		int32 generateItems(const PoolIntArray items, const PoolIntArray quantity);
 		int32 getAllItems();
 		String getItemDefinitionProperty(uint32 definition, const String& name);
-		int32 getItemsByID(const uint64_t id_array, uint32 count);
+		int32 getItemsByID(const PoolIntArray id_array);
 		uint64_t getItemPrice(uint32 definition);
-		Array getItemsWithPrices(uint32 length);
-		uint32 getNumItemsWithPrices();
+		Array getItemsWithPrices();
 		String getResultItemProperty(uint32 index, const String& name, int32 this_inventory_handle = 0);
 		Array getResultItems(int32 this_inventory_handle = 0);
 		String getResultStatus(int32 this_inventory_handle = 0);
@@ -945,7 +944,7 @@ class SteamServer: public Object {
 		void requestEligiblePromoItemDefinitionsIDs(uint64_t steam_id);
 		void requestPrices();
 		String serializeResult(int32 this_inventory_handle = 0);
-		void startPurchase(const PoolIntArray items, const uint32 quantity);
+		void startPurchase(const PoolIntArray items, const PoolIntArray quantity);
 		int32 transferItemQuantity(uint64_t item_id, uint32 quantity, uint64_t item_destination, bool split);
 		int32 triggerItemDrop(uint32 definition);
 		void startUpdateProperties();
@@ -1005,7 +1004,7 @@ class SteamServer: public Object {
 //		int getHostedDedicatedServerAddress();	<------ Uses datagram relay structs which were removed from base SDK
 		uint32 getHostedDedicatedServerPOPId();
 		uint16 getHostedDedicatedServerPort();
-		bool getListenSocketAddress(uint32 socket);
+		String getListenSocketAddress(uint32 socket, bool with_port = true);
 		String getIdentity();
 		Dictionary getRemoteFakeIPForConnection(uint32 connection);
 		NetworkingAvailability initAuthentication();
@@ -1254,6 +1253,9 @@ class SteamServer: public Object {
 		// Networking Utils callbacks ///////////
 		STEAM_GAMESERVER_CALLBACK(SteamServer, relay_network_status, SteamRelayNetworkStatus_t, callbackRelayNetworkStatus);
 
+		// Remote Storage callbacks /////////////
+		STEAM_GAMESERVER_CALLBACK(SteamServer, local_file_changed, RemoteStorageLocalFileChange_t, callbackLocalFileChanged);
+
 		// UGC callbacks ////////////////////////
 		STEAM_GAMESERVER_CALLBACK(SteamServer, item_downloaded, DownloadItemResult_t, callbackItemDownloaded);
 		STEAM_GAMESERVER_CALLBACK(SteamServer, item_installed, ItemInstalled_t, callbackItemInstalled);
@@ -1277,6 +1279,12 @@ class SteamServer: public Object {
 		void inventory_start_purchase_result(SteamInventoryStartPurchaseResult_t *call_data, bool io_failure);
 
 		// Remote Storage call results //////////
+		CCallResult<SteamServer, RemoteStorageFileReadAsyncComplete_t> callResultFileReadAsyncComplete;
+		void file_read_async_complete(RemoteStorageFileReadAsyncComplete_t *call_data, bool io_failure);
+		CCallResult<SteamServer, RemoteStorageFileShareResult_t> callResultFileShareResult;
+		void file_share_result(RemoteStorageFileShareResult_t *call_data, bool io_failure);
+		CCallResult<SteamServer, RemoteStorageFileWriteAsyncComplete_t> callResultFileWriteAsyncComplete;
+		void file_write_async_complete(RemoteStorageFileWriteAsyncComplete_t *call_data, bool io_failure);
 		CCallResult<SteamServer, RemoteStorageDownloadUGCResult_t> callResultDownloadUGCResult;
 		void download_ugc_result(RemoteStorageDownloadUGCResult_t *call_data, bool io_failure);
 		CCallResult<SteamServer, RemoteStorageUnsubscribePublishedFileResult_t> callResultUnsubscribeItem;
