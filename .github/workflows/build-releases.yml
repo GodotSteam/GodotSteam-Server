@@ -175,7 +175,7 @@ jobs:
       artifact_name: "linux-debug-template"
     secrets:
       steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}#
+      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
 
   create-linux-bundle:
     needs: [env-setup, build-linux-headless-editor, build-linux-headless-release-template, build-linux-headless-debug-template]
