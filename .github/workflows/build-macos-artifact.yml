@@ -41,6 +41,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: "godotsteam_server"
+
       - name: Copy GodotSteam Server Module
         run: |
           cp -r godotsteam_server godot/modules/godotsteam_server
@@ -53,6 +54,7 @@ jobs:
           repository: ${{ secrets.steamworks_sdk_repo }}
           token: ${{ secrets.steamworks_sdk_repo_token }}
           ref: ${{ inputs.steamworks_sdk_tag }}
+
       - name: Copy Steamworks
         run: |
           cp -r steamworks/public godot/modules/godotsteam_server/sdk
@@ -78,6 +80,7 @@ jobs:
           done
           rm -f /tmp/vulkan-sdk.dmg
           echo 'Vulkan SDK installed successfully!'
+
       - name: Install Build Tools
         run: |
           brew install scons yasm
@@ -87,6 +90,7 @@ jobs:
         working-directory: "godot"
         run: |
           scons ${{ inputs.build_params }}
+
       - name: Upload MacOS Build
         uses: actions/upload-artifact@v4
         with:
@@ -95,6 +99,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 1
+
       - name: Upload MacOS Steam Dylib
         uses: actions/upload-artifact@v4
         with:
@@ -103,12 +108,14 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 1
+
       - name: Zip the MacOS Apps
         run: |
           pushd godot/misc/dist
           zip -r ./macos_tools.zip ./macos_tools.app/
           zip -r ./macos_template.zip ./macos_template.app/
           popd
+
       - name: Upload MacOS Tool App
         uses: actions/upload-artifact@v4
         with:
@@ -117,6 +124,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 1
+
       - name: Upload MacOS Template App
         uses: actions/upload-artifact@v4
         with:
