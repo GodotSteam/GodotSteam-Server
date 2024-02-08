@@ -199,7 +199,7 @@ jobs:
           cp -n 'README.md' 'LICENSE.txt' 'godotsteam_server.gdextension' project/addons/godotsteam_server
           echo "480" > project/steam_appid.txt
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: gdextension
           path: |
