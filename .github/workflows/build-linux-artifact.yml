@@ -63,7 +63,6 @@ jobs:
           cp -r steamworks/redistributable_bin godot/modules/godotsteam_server/sdk
 
       - name: Install gcc-multilib
-        if: ${{ startsWith(matrix.opts.arch, 'x86_32') && startsWith(matrix.opts.runner,'ubuntu-') }}
         shell: sh
         run: |
           sudo apt-get update
@@ -82,7 +81,7 @@ jobs:
           cd buildroot
           ./relocate-sdk.sh
 
-     - name: Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v5
 
       - name: Set up SCons
