@@ -227,7 +227,9 @@ class SteamServer: public Object {
 			RESULT_INSUFFICIENT_BATTERY = k_EResultInsufficientBattery,
 			RESULT_CHARGER_REQUIRED = k_EResultChargerRequired,
 			RESULT_CACHED_CREDENTIAL_INVALID = k_EResultCachedCredentialInvalid,
-			RESULT_PHONE_NUMBER_IS_VOIP = K_EResultPhoneNumberIsVOIP
+			RESULT_PHONE_NUMBER_IS_VOIP = K_EResultPhoneNumberIsVOIP,
+			RESULT_NOT_SUPPORTED = k_EResultNotSupported,
+			RESULT_FAMILY_SIZE_LIMIT_EXCEEDED = k_EResultFamilySizeLimitExceeded
 		};
 		enum ServerMode {
 			SERVER_MODE_INVALID = eServerModeInvalid,
@@ -472,6 +474,7 @@ class SteamServer: public Object {
 			NETWORKING_CONFIG_FAKE_RATE_LIMIT_SEND_BURST = k_ESteamNetworkingConfig_FakeRateLimit_Send_Burst,
 			NETWORKING_CONFIG_FAKE_RATE_LIMIT_RECV_RATE = k_ESteamNetworkingConfig_FakeRateLimit_Recv_Rate,
 			NETWORKING_CONFIG_FAKE_RATE_LIMIT_RECV_BURST = k_ESteamNetworkingConfig_FakeRateLimit_Recv_Burst,
+			NETWORKING_CONFIG_OUT_OF_ORDER_CORRECTION_WINDOW_MICROSECONDS = k_ESteamNetworkingConfig_OutOfOrderCorrectionWindowMicroseconds,
 			NETWORKING_CONFIG_CONNECTION_USER_DATA = k_ESteamNetworkingConfig_ConnectionUserData,
 			NETWORKING_CONFIG_TIMEOUT_INITIAL = k_ESteamNetworkingConfig_TimeoutInitial,
 			NETWORKING_CONFIG_TIMEOUT_CONNECTED = k_ESteamNetworkingConfig_TimeoutConnected,
@@ -496,9 +499,10 @@ class SteamServer: public Object {
 			NETWORKING_CONFIG_SDR_CLIENT_MIN_PINGS_BEFORE_PING_ACCURATE = k_ESteamNetworkingConfig_SDRClient_MinPingsBeforePingAccurate,
 			NETWORKING_CONFIG_SDR_CLIENT_SINGLE_SOCKET = k_ESteamNetworkingConfig_SDRClient_SingleSocket,
 			NETWORKING_CONFIG_SDR_CLIENT_FORCE_RELAY_CLUSTER = k_ESteamNetworkingConfig_SDRClient_ForceRelayCluster,
-			NETWORKING_CONFIG_SDR_CLIENT_DEBUG_TICKET_ADDRESS = k_ESteamNetworkingConfig_SDRClient_DebugTicketAddress,
+			NETWORKING_CONFIG_SDR_CLIENT_DEV_TICKET = k_ESteamNetworkingConfig_SDRClient_DevTicket,
 			NETWORKING_CONFIG_SDR_CLIENT_FORCE_PROXY_ADDR = k_ESteamNetworkingConfig_SDRClient_ForceProxyAddr,
 			NETWORKING_CONFIG_SDR_CLIENT_FAKE_CLUSTER_PING = k_ESteamNetworkingConfig_SDRClient_FakeClusterPing,
+			NETWORKING_CONFIG_SDR_CLIENT_LIMIT_PING_PROBES_TO_NEAREST_N = k_ESteamNetworkingConfig_SDRClient_LimitPingProbesToNearestN,
 			NETWORKING_CONFIG_LOG_LEVEL_ACK_RTT = k_ESteamNetworkingConfig_LogLevel_AckRTT,
 			NETWORKING_CONFIG_LOG_LEVEL_PACKET_DECODE = k_ESteamNetworkingConfig_LogLevel_PacketDecode,
 			NETWORKING_CONFIG_LOG_LEVEL_MESSAGE = k_ESteamNetworkingConfig_LogLevel_Message,
@@ -521,6 +525,7 @@ class SteamServer: public Object {
 			NETWORKING_CONFIG_P2P_TURN_PASS_LIST = k_ESteamNetworkingConfig_P2P_TURN_PassList,
 //			NETWORKING_CONFIG_P2P_TRANSPORT_LAN_BEACON_PENALTY = k_ESteamNetworkingConfig_P2P_Transport_LANBeacon_Penalty,
 			NETWORKING_CONFIG_P2P_TRANSPORT_ICE_IMPLEMENTATION = k_ESteamNetworkingConfig_P2P_Transport_ICE_Implementation,
+			NETWORKING_CONFIG_ECN = k_ESteamNetworkingConfig_ECN,
 			NETWORKING_CONFIG_VALUE_FORCE32BIT = k_ESteamNetworkingConfigValue__Force32Bit
 		};
 		enum NetworkingConnectionEnd {
@@ -706,6 +711,7 @@ class SteamServer: public Object {
 			wORKSHOP_FILE_TYPE_STEAMWORKS_ACCESS_INVITE = k_EWorkshopFileTypeSteamworksAccessInvite,
 			WORKSHOP_FILE_TYPE_STEAM_VIDEO = k_EWorkshopFileTypeSteamVideo,
 			WORKSHOP_FILE_TYPE_GAME_MANAGED_ITEM = k_EWorkshopFileTypeGameManagedItem,
+			WORKSHOP_FILE_TYPE_CLIP = k_EWorkshopFileTypeClip,
 			WORKSHOP_FILE_TYPE_MAX = k_EWorkshopFileTypeMax
 		};
 		enum WorkshopVideoProvider {
@@ -726,6 +732,7 @@ class SteamServer: public Object {
 			ITEM_PREVIEW_TYPE_SKETCHFAB = k_EItemPreviewType_Sketchfab,
 			ITEM_PREVIEW_TYPE_ENVIRONMENTMAP_HORIZONTAL_CROSS = k_EItemPreviewType_EnvironmentMap_HorizontalCross,
 			ITEM_PREVIEW_TYPE_ENVIRONMENTMAP_LAT_LONG = k_EItemPreviewType_EnvironmentMap_LatLong,
+			ITEM_PREVIEW_TYPE_CLIP = k_EItemPreviewType_Clip,
 			ITEM_PREVIEW_TYPE_RESERVED_MAX = k_EItemPreviewType_ReservedMax
 		};
 		enum ItemState {
@@ -735,7 +742,8 @@ class SteamServer: public Object {
 			ITEM_STATE_INSTALLED = k_EItemStateInstalled,
 			ITEM_STATE_NEEDS_UPDATE = k_EItemStateNeedsUpdate,
 			ITEM_STATE_DOWNLOADING = k_EItemStateDownloading,
-			ITEM_STATE_DOWNLOAD_PENDING = k_EItemStateDownloadPending
+			ITEM_STATE_DOWNLOAD_PENDING = k_EItemStateDownloadPending,
+			ITEM_STATE_DISABLED_LOCALLY = k_EItemStateDisabledLocally
 		};
 		enum ItemStatistic {
 			ITEM_STATISTIC_NUM_SUBSCRIPTIONS = k_EItemStatistic_NumSubscriptions,
