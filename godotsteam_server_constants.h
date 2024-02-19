@@ -2,6 +2,7 @@
 #include "steam/steam_api.h"
 
 // Define Steam API constants
+#define ACCOUNT_ID_INVALID k_uAccountIdInvalid
 #define API_CALL_INVALID k_uAPICallInvalid
 #define APP_ID_INVALID k_uAppIdInvalid
 #define AUTH_TICKET_INVALID k_HAuthTicketInvalid

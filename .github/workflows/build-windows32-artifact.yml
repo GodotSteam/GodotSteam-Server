@@ -97,7 +97,7 @@ jobs:
 
       - name: Clear bin
         run: |
-          rm -rf bin
+          rm -r -fo bin
 
       # Compiling editors
       - name: Editor compilation (bits=32)
@@ -115,7 +115,7 @@ jobs:
 
       - name: Clear bin
         run: |
-          rm -rf bin
+          rm -r -fo bin
 
       # Compiling templates
       - name: Debug Template compilation (tools=false, bits=32, target=release_debug)
@@ -142,4 +142,4 @@ jobs:
       - name: Clear bin
         shell: pwsh
         run: |
-          rm -rf bin
+          rm -r -fo bin
