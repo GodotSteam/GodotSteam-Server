@@ -20,14 +20,25 @@ Current Build
 ---
 You can [download pre-compiled versions _(currently v3.1)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
 
-**Version 3.1 Changes**
-- Added: a missing constant
-- Changed: backported various fixes from non-server GodotSteam
-- Changed: updated various function arguments to match non-server GodotSteam
-- Changed: constants now live in `godotsteam_server_constants.h` like non-server GodotSteam
-- Changed: further fixes to initialization functions
+**Version 3.2 Changes**
+- Added: new Remote Storage enum to WorkshopFileType
+- Added: two new UGC enums to ItemState and ItemPreviewType
+- Added: new Remote Play enum, form factor for VR headset
+- Added: two new result enums; not supported and family size limit exceeded
+- Added: three new enums to NetworkingConfigValue
+- Added: new general constant ACCOUNT_ID_INVALID
+- Changed: k_ESteamNetworkingConfig_SDRClient_DebugTicketAddress was replaced by k_ESteamNetworkingConfig_SDRClient_DevTicket, value is the same but reference changed
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server3/).
+
+Compatibility
+---
+While rare, sometimes Steamworks SDK updates will break compatilibity with older GodotSteam versions. Any compatability breaks are noted below. API files (dll, so, dylib) _should_ still work for older version.
+
+Steamworks SDK Version | GodotSteam Version
+---|---|---
+1.59 or newer | 3.2 or newer
+1.58a or older | 3.1 or older
 
 Known Issues
 ---

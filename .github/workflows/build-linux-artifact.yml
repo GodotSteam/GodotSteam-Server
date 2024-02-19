@@ -57,6 +57,11 @@ jobs:
           token: ${{ secrets.steamworks_sdk_repo_token }}
           ref: ${{ inputs.steamworks_sdk_tag }}
 
+      - name: Move .so For Mono
+        run: |
+          mkdir ./bin/
+          cp ./modules/godotsteam_server/sdk/redistributable_bin/linux64/libsteam_api.so ./bin/
+
       # Setting up the Linux toolchain for older versions
       - name: Setup Linux Toolchain (x86_64)
         uses: ./.github/actions/godot-linux-toolchain
