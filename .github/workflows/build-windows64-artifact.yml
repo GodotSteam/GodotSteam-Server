@@ -63,7 +63,6 @@ jobs:
       - name: Move .dll For Mono
         shell: bash
         run: |
-          mkdir ./bin/
           cp ./modules/godotsteam_server/sdk/redistributable_bin/win64/steam_api64.dll ./bin/
           ls ./bin/
 
