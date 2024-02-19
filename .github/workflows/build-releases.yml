@@ -41,7 +41,7 @@ jobs:
       steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
       steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
 
-  build-osx:
+  build-macos:
     uses: ./.github/workflows/build-macos-artifact.yml
     with:
       steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
