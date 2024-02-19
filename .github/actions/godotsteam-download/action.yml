@@ -5,8 +5,8 @@ runs:
   steps:
     - name: Download and extract GodotSteam Server
       uses: actions/checkout@v4
-        with:
-          path: "godotsteam_server"
+      with:
+        path: "godotsteam_server"
     - name: Copy GodotSteam Server Module
       shell: bash
       run: |
