@@ -37,8 +37,5 @@ runs:
           SCONS_CACHE_LIMIT: ${{ inputs.scons-cache-limit }}
       run: |
         echo "Building with flags:" ${{ env.SCONSFLAGS }}
-        if [[ ${{ inputs.buildroot != '' }} ]]; then
-          echo "Using buildroot at ${{ inputs.buildroot }}"
-        fi
-        ${{ inputs.buildroot != '' && format('PATH={0}:$PATH', inputs.buildroot) || '' }} scons p=${{ inputs.platform }} target=${{ inputs.target }} tools=${{ inputs.tools }} tests=${{ inputs.tests }} ${{ env.SCONSFLAGS }}
+        scons p=${{ inputs.platform }} target=${{ inputs.target }} tools=${{ inputs.tools }} tests=${{ inputs.tests }} ${{ env.SCONSFLAGS }}
         ls -l bin/

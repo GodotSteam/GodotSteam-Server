@@ -32,9 +32,9 @@ runs:
       if: ${{ inputs.mono-release != '' }}
       uses: dsaltares/fetch-gh-release-asset@master
       with:
-        # Hacky fix since it wasn't to default to GodotSteam Server repo
+        # Hacky fix since env aren't passing through
         repo: "godotengine/godot-mono-builds"
-        version: "tags/${{ env.INPUT_MONO_BUILD_TAG }}"
+        version: "tags/release-5299efd"
         file: "${{ inputs.mono-release }}.zip"
     
     - name: Extract mono release
