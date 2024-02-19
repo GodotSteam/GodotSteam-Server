@@ -40,8 +40,8 @@ jobs:
       # Download Godot to start
       - name: Download Godot
         uses: ./.github/actions/godot-download
-          with:
-            version: ${{ inputs.godot_tag }}
+        with:
+          version: ${{ inputs.godot_tag }}
 
       # Download GodotSteam Server
       - name: Download GodotSteam Server
@@ -50,11 +50,11 @@ jobs:
       # Download Steamworks SDK
       - name: Download Steamworks SDK
         uses: ./.github/actions/steamworks-download
-          with:
-            path: "steamworks"
-            repository: ${{ secrets.steamworks_sdk_repo }}
-            token: ${{ secrets.steamworks_sdk_repo_token }}
-            ref: ${{ inputs.steamworks_sdk_tag }}
+        with:
+          path: "steamworks"
+          repository: ${{ secrets.steamworks_sdk_repo }}
+          token: ${{ secrets.steamworks_sdk_repo_token }}
+          ref: ${{ inputs.steamworks_sdk_tag }}
 
       # Get that cache set up
       - name: Setup Godot build cache
