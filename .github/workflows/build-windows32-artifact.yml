@@ -43,6 +43,10 @@ jobs:
         with:
           version: ${{ inputs.godot_tag }}
 
+      - name: Preempty Missing bin/
+        run: |
+          mkdir ./bin/
+
       # Download GodotSteam Server
       - name: Download GodotSteam Server
         uses: ./.github/actions/godotsteam-download
