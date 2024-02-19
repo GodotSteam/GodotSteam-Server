@@ -58,6 +58,13 @@ jobs:
           token: ${{ secrets.steamworks_sdk_repo_token }}
           ref: ${{ inputs.steamworks_sdk_tag }}
 
+      - name: Move .dylib For Mono
+        shell: bash
+        run: |
+          mkdir ./bin/
+          cp ./modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib ./bin/
+          ls ./bin/
+
       # Get that cache set up
       - name: Setup Godot build cache
         uses: ./.github/actions/godot-cache

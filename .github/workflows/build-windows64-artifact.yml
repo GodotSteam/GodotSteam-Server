@@ -60,6 +60,13 @@ jobs:
           token: ${{ secrets.steamworks_sdk_repo_token }}
           ref: ${{ inputs.steamworks_sdk_tag }}
 
+      - name: Move .dll For Mono
+        shell: bash
+        run: |
+          mkdir ./bin/
+          cp ./modules/godotsteam_server/sdk/redistributable_bin/win64/steam_api64.dll ./bin/
+          ls ./bin/
+
       # Get that cache set up
       - name: Setup Godot build cache
         uses: ./.github/actions/godot-cache
@@ -84,7 +91,7 @@ jobs:
         if: ${{ matrix.build-mono }}
         uses: ./.github/actions/godot-windows-build
         with:
-          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no
+          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no mono_prefix="./mon-bcls/desktop-win64-bcl"
           platform: windows
           tools: true
 
