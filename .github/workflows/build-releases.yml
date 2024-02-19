@@ -79,7 +79,7 @@ jobs:
 
   bundle-export-templates:
     needs:
-      [linux, macos, server, windows-32, windows-64]
+      [build-linux, build-macos, build-server, build-windows-32, build-windows-64]
     name: Bundle Export Templates
     runs-on: ubuntu-latest
     strategy:
