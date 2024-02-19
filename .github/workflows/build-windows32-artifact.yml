@@ -95,10 +95,6 @@ jobs:
         run: |
           echo "MONO_SCONSFLAGS=module_mono_enabled=yes mono_glue=yes copy_mono_root=yes mono_bcl=$HOME/mono-bcls/desktop-win32-bcl/net_4_x-win32 mono_static=yes" >> $GITHUB_ENV
 
-      - name: Clear bin
-        run: |
-          rm -r -fo bin
-
       # Compiling editors
       - name: Editor compilation (bits=32)
         uses: ./.github/actions/godot-windows-build
