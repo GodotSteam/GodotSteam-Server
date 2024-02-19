@@ -7,15 +7,6 @@ on:
       godot_tag:
         required: true
         type: string
-      build_params:
-        required: true
-        type: string
-      artifact_name:
-        required: true
-        type: string
-      export_name:
-        required: true
-        type: string
     secrets:
       steamworks_sdk_repo:
         required: true
@@ -25,83 +16,207 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: "macos-latest"
     
+    name: macOS ${{ matrix.name }}
+    
+    env:
+      SCONSFLAGS:
+      STRIP: "strip -u -r"
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Editor & Templates
+            cache-name: macos
+            build-mono: false
+
+          - name: Editor & Templates w/ Mono
+            cache-name: macos-mono
+            build-mono: true
+
     steps:
-      # Checkout Godot
-      - name: Checkout Godot
-        uses: actions/checkout@v4
-        with:
-          repository: "godotengine/godot"
-          path: "godot"
-          ref: ${{ inputs.godot_tag }}
+      - uses: actions/checkout@v4
 
-      # Checkout current source of GodotSteam Server
-      - name: Checkout GodotSteam Server
-        uses: actions/checkout@v4
-        with:
-          path: "godotsteam_server"
-      - name: Copy GodotSteam Server Module
-        run: |
-          cp -r godotsteam_server godot/modules/godotsteam_server
+      # Download Godot to start
+      - name: Download Godot
+        uses: ./.github/actions/godot-download
+          with:
+            version: ${{ inputs.godot_tag }}
 
-      # Checkout Steamworks SDK
-      - name: Checkout Steamworks SDK
-        uses: actions/checkout@v4
-        with:
-          path: "steamworks"
-          repository: ${{ secrets.steamworks_sdk_repo }}
-          token: ${{ secrets.steamworks_sdk_repo_token }}
-          ref: ${{ inputs.steamworks_sdk_tag }}
-      - name: Copy Steamworks
-        run: |
-          cp -r steamworks/public godot/modules/godotsteam_server/sdk
-          cp -r steamworks/redistributable_bin godot/modules/godotsteam_server/sdk
-          ls -la godot/modules/godotsteam_server/sdk
-      - name: Install Build Tools
-        run: |
-          brew install scons yasm
+      # Download GodotSteam Server
+      - name: Download GodotSteam Server
+        uses: ./.github/actions/godotsteam-download
 
-      # Build the module and make it available
-      - name: Build MacOS
-        working-directory: "godot"
+      # Download Steamworks SDK
+      - name: Download Steamworks SDK
+        uses: ./.github/actions/steamworks-download
+          with:
+            path: "steamworks"
+            repository: ${{ secrets.steamworks_sdk_repo }}
+            token: ${{ secrets.steamworks_sdk_repo_token }}
+            ref: ${{ inputs.steamworks_sdk_tag }}
+
+      # Get that cache set up
+      - name: Setup Godot build cache
+        uses: ./.github/actions/godot-cache
+        with:
+          cache-name: ${{ matrix.cache-name }}
+        continue-on-error: true
+
+      # Setup Python and Scons
+      - name: Setup Python and Scons
+        uses: ./.github/actions/godot-deps
+
+      # Setup Mono
+      - name: Setup Mono (x86_64)
+        if: ${{ matrix.build-mono }}
+        uses: ./.github/actions/godot-mono
+        with:
+          mono-release: "osx-x86_64"
+          mono-bcl: "bcl-desktop"
+
+      - name: Setup mono (arm64)
+        if: ${{ matrix.build-mono }}
+        uses: ./.github/actions/godot-mono
+        with:
+          mono-release: "osx-arm64"
+
+      - name: Mono precompilation
+        if: ${{ matrix.build-mono }}
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ matrix.sconsflags }} module_mono_enabled=yes mono_glue=no
+          platform: osx
+          tools: true
+
+      # Generate Mono glue
+      - name: Generate Mono glue code
+        if: ${{ matrix.build-mono }}
         run: |
-          scons ${{ inputs.build_params }}
-      - name: Upload MacOS Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.artifact_name }}
-          path: godot/bin/${{ inputs.export_name }}
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 1
-      - name: Upload MacOS Steam Dylib
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-libsteam-api-dylib
-          path: godot/modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 1
-      - name: Zip the MacOS Apps
+          DRI_PRIME=0 "./bin/godot.osx.tools.64.mono" --generate-mono-glue modules/mono/glue
+
+      - name: Set Mono Scons flags
+        if: ${{ matrix.build-mono }}
         run: |
-          pushd godot/misc/dist
-          zip -r ./osx_tools.zip ./osx_tools.app/
-          zip -r ./osx_template.zip ./osx_template.app/
-          popd
-      - name: Upload MacOS Tool App
-        uses: actions/upload-artifact@v4
+          echo "MONO_SCONSFLAGS=module_mono_enabled=yes mono_glue=yes copy_mono_root=yes mono_bcl=$HOME/mono-bcls/desktop-bcl/net_4_x" >> $GITHUB_ENV
+
+      - name: Clear bin
+        run: |
+          rm -rf bin
+
+      # Compilng editors
+      - name: Editor compilation (arch=x86_64)
+        uses: ./.github/actions/godot-build
         with:
-          name: macos-tool-app
-          path: godot/misc/dist/osx_tools.zip
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 1
-      - name: Upload MacOS Template App
-        uses: actions/upload-artifact@v4
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=x86_64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-x86_64-release' || '' }}
+          platform: osx
+          target: release_debug
+          tools: true
+
+      - name: Dylib Wrangling
+        if: ${{ matrix.build-mono }}
+        run: |
+          # Note: A bit of dylib wrangling involved as x86_64 and arm64 builds both generate GodotSharp
+          # so the second build overrides the first, but we need to lipo the libs to make them universal.
+          # We also need to ensure that /etc/mono/config has the proper filenames (keep arm64 as the last
+          # build so that we rely on its config, which has libmono-native.dylib instead of
+          # libmono-native-compat.dylib).
+          mkdir -p tmp-lib/{x86_64,arm64}
+          cp bin/GodotSharp/Mono/lib/*.dylib tmp-lib/x86_64/
+
+      - name: Editor compilation (arch=arm64)
+        uses: ./.github/actions/godot-build
         with:
-          name: macos-template-app
-          path: godot/misc/dist/osx_template.zip
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 1
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=arm64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-arm64-release' || '' }}
+          platform: osx
+          target: release_debug
+          tools: true
+
+      - name: Dylib Wrangling
+        if: ${{ matrix.build-mono }}
+        run: |
+          cp bin/GodotSharp/Mono/lib/*.dylib tmp-lib/arm64/
+          echo "tmp-lib:"
+          find tmp-lib | sed -e "s/[^-][^\/]*\// |/g" -e "s/|\([^ ]\)/|-\1/"
+
+      - name: Package Editor (arch=arm64, x86_64)
+        run: |
+          lipo -create bin/godot.osx.opt.tools.x86_64${{ matrix.build-mono && '.mono' || '' }} \
+            bin/godot.osx.opt.tools.arm64${{ matrix.build-mono && '.mono' || '' }} \
+            -output bin/godot.osx.opt.tools.universal${{ matrix.build-mono && '.mono' || '' }}
+          $STRIP bin/godot.osx.opt.tools.universal${{ matrix.build-mono && '.mono' || '' }}
+
+          if ${{ matrix.build-mono }}; then
+            # Make universal versions of the dylibs we use.
+            lipo -create tmp-lib/x86_64/libmono-native.dylib tmp-lib/arm64/libmono-native.dylib -output tmp-lib/libmono-native.dylib
+            lipo -create tmp-lib/x86_64/libMonoPosixHelper.dylib tmp-lib/arm64/libMonoPosixHelper.dylib -output tmp-lib/libMonoPosixHelper.dylib
+            # Somehow only included in x86_64 build.
+            cp tmp-lib/x86_64/libmono-btls-shared.dylib tmp-lib/
+
+            cp -f tmp-lib/*.dylib bin/GodotSharp/Mono/lib/
+          fi
+
+      - name: Upload Editor
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: ${{ matrix.cache-name }}-editor
+
+      - name: Clear bin
+        run: |
+          rm -rf bin
+
+      # Compiling templates
+      - name: Debug Template compilation (tools=false, arch=x86_64, target=release_debug)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=x86_64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-x86_64-release' || '' }}
+          platform: osx
+          target: release_debug
+          tools: false
+
+      - name: Release template compilation (tools=false, arch=arm64, target=release_debug)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=arm64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-arm64-release' || '' }}
+          platform: osx
+          target: release_debug
+          tools: false
+
+      - name: Debug Template compilation (tools=false, arch=x86_64, target=release)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=x86_64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-x86_64-release' || '' }} debug_symbols=no
+          platform: osx
+          target: release
+          tools: false
+
+      - name: Release template compilation (tools=false, arch=arm64, target=release)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: ${{ env.SCONSFLAGS }} ${{ env.MONO_SCONSFLAGS }} ${{ matrix.sconsflags }} arch=arm64 ${{ matrix.build-mono && 'mono_prefix=$HOME/mono-installs/desktop-osx-arm64-release' || '' }} debug_symbols=no
+          platform: osx
+          target: release
+          tools: false
+
+      - name: Package Templates (arch=arm64, x86_64)
+        run: |
+          lipo -create bin/godot.osx.opt.debug.x86_64${{ matrix.build-mono && '.mono' || '' }} bin/godot.osx.opt.debug.arm64${{ matrix.build-mono && '.mono' || '' }} -output bin/godot.osx.opt.debug.universal${{ matrix.build-mono && '.mono' || '' }}
+          $STRIP bin/godot.osx.opt.debug.universal${{ matrix.build-mono && '.mono' || '' }}
+          lipo -create bin/godot.osx.opt.x86_64${{ matrix.build-mono && '.mono' || '' }} bin/godot.osx.opt.arm64${{ matrix.build-mono && '.mono' || '' }} -output bin/godot.osx.opt.universal${{ matrix.build-mono && '.mono' || '' }}
+          $STRIP bin/godot.osx.opt.universal${{ matrix.build-mono && '.mono' || '' }}
+
+          if ${{ matrix.build-mono }}; then
+            cp -f tmp-lib/*.dylib bin/data.mono.osx.64.release/Mono/lib/
+            cp -f tmp-lib/*.dylib bin/data.mono.osx.64.release_debug/Mono/lib/
+          fi
+
+      - name: Upload Templates
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: ${{ matrix.cache-name }}-templates
+
+      - name: Clear bin
+        run: |
+          rm -rf bin
