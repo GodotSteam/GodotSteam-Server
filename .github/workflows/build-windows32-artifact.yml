@@ -90,7 +90,7 @@ jobs:
         if: ${{ matrix.build-mono }}
         uses: ./.github/actions/godot-windows-build
         with:
-          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no mono_prefix="./mon-bcls/desktop-win32-bcl"
+          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no mono_prefix="$HOME/mono-installs/desktop-windows-x86-release"
           platform: windows
           tools: true
 
