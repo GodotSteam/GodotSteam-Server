@@ -90,7 +90,7 @@ jobs:
         if: ${{ matrix.build-mono }}
         uses: ./.github/actions/godot-windows-build
         with:
-          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no mono_bcl=$HOME/mono-bcls/desktop-bcl/net_4_x mono_prefix=$HOME/mono-installs/desktop-windows-x86_64-release
+          sconsflags: mono_static=yes module_mono_enabled=yes mono_glue=no copy_mono_root=yes mono_bcl=$HOME/mono-bcls/desktop-bcl/net_4_x mono_prefix=$HOME/mono-installs/desktop-windows-x86_64-release
           platform: windows
           tools: true
 
@@ -98,12 +98,12 @@ jobs:
       - name: Generate Mono glue code
         if: ${{ matrix.build-mono }}
         run: |
-          DRI_PRIME=0 xvfb-run "./bin/godot.x11.tools.64.mono" --generate-mono-glue modules/mono/glue || true
+          DRI_PRIME=0 xvfb-run "./bin/godot.windows.opt.tools.64.mono.exe" --generate-mono-glue modules/mono/glue || true
 
       - name: Set Mono scons flags
         if: ${{ matrix.build-mono }}
         run: |
-          echo "MONO_SCONSFLAGS=module_mono_enabled=yes mono_glue=yes copy_mono_root=yes mono_bcl=$HOME/mono-bcls/desktop-win64-bcl/net_4_x-win64 mono_static=yes" >> $GITHUB_ENV
+          echo "MONO_SCONSFLAGS=module_mono_enabled=yes mono_glue=yes copy_mono_root=yes mono_bcl=$HOME/mono-bcls/desktop-bcl/net_4_x" >> $GITHUB_ENV
 
       # Compiling editors
       - name: Compilation (bits=64)
