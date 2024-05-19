@@ -1,5 +1,6 @@
 name: Build Releases
 
+
 on:
   workflow_dispatch:
     inputs:
@@ -7,210 +8,119 @@ on:
         description: 'Steamworks SDK Github tag:'
         required: true
         type: string
-        default: 'sdk-1.58'
+        default: 'sdk-1.59'
+
       godot_tag:
         description: 'Godot Github tag:'
         required: true
         type: string
         default: '3.5.3-stable'
+
       godotsteam_version:
         description: 'GodotSteam Server version number:'
         required: true
         type: string
-        default: '3.1'
-
-
-# Global Settings
-# SCONS_CACHE for windows must be set in the build environment
-env:
-  # Used for cache key as well as for downloading the correct Godot version.
-  GODOT_BASE_VERSION: 3.5.3
-  GODOT_BASE_VERSION_STATUS: stable
-  GODOT_VERSION_STATUS: custom
-  GODOT_MONO_BUILD_TAG: release-5299efd # mono-6.12.0.182
-  GODOT_MONO_BUILD_REPO: godotengine/godot-mono-builds
+        default: '3.3'
 
 
 jobs:
-  build-linux:
-    uses: ./.github/workflows/build-linux-artifact.yml
+  env-setup:
+    uses: ./.github/workflows/setup-env.yml
     with:
-      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
       godot_tag: ${{ inputs.godot_tag }}
+      godotsteam_version: ${{ inputs.godotsteam_version }}
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
+
+
+  build-linux:
+    needs: [env-setup]
+    uses: ./.github/workflows/build-artifact-linux.yml
+    with:
+      godot_tag: ${{ inputs.godot_tag }}
+      godot_version: ${{ needs.env-setup.outputs.godot_version }}
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
     secrets:
       steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
       steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
+
+
+  create-linux-bundle:
+    needs: [env-setup, build-linux]
+    uses: ./.github/workflows/create-bundle.yml
+    with:
+      artifact_type: linux
+      platform: 'Linux'
+      zip_prefix: linux64
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
+
+
+  create-linux-headless-bundle:
+    needs: [env-setup, build-linux]
+    uses: ./.github/workflows/create-bundle.yml
+    with:
+      artifact_type: server
+      platform: 'Linux Headless'
+      zip_prefix: linux64
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
+
+
+  build-windows:
+    needs: [env-setup]
+    uses: ./.github/workflows/build-artifact-windows.yml
+    with:
+      godot_tag: ${{ inputs.godot_tag }}
+      godot_version: ${{ needs.env-setup.outputs.godot_version }}
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
+    secrets:
+      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
+      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
+
+
+  create-windows32-bundle:
+    needs: [env-setup, build-windows]
+    uses: ./.github/workflows/create-bundle.yml
+    with:
+      artifact_type: windows32
+      platform: 'Windows32'
+      zip_prefix: win32
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
+
+
+  create-windows64-bundle:
+    needs: [env-setup, build-windows]
+    uses: ./.github/workflows/create-bundle.yml
+    with:
+      artifact_type: windows64
+      platform: 'Windows64'
+      zip_prefix: win64
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
+
 
   build-macos:
-    uses: ./.github/workflows/build-macos-artifact.yml
+    needs: [env-setup]
+    uses: ./.github/workflows/build-artifact-macos.yml
     with:
-      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
       godot_tag: ${{ inputs.godot_tag }}
+      godot_version: ${{ needs.env-setup.outputs.godot_version }}
+      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
     secrets:
       steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
       steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
 
-  build-server:
-    uses: ./.github/workflows/build-server-artifact.yml
+
+  create-macos-bundle:
+    needs: [env-setup, build-macos]
+    uses: ./.github/workflows/create-bundle.yml
     with:
-      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-      godot_tag: ${{ inputs.godot_tag }}
-    secrets:
-      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
+      artifact_type: macos
+      platform: 'MacOS'
+      zip_prefix: macos
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
 
-  build-windows-32:
-    uses: ./.github/workflows/build-windows32-artifact.yml
+
+  create-template-bundle:
+    needs: [env-setup, build-linux, build-windows, build-macos]
+    uses: ./.github/workflows/create-bundle-templates.yml
     with:
-      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-      godot_tag: ${{ inputs.godot_tag }}
-    secrets:
-      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
-
-  build-windows-64:
-    uses: ./.github/workflows/build-windows64-artifact.yml
-    with:
-      steamworks_sdk_tag: ${{ inputs.steamworks_sdk_tag }}
-      godot_tag: ${{ inputs.godot_tag }}
-    secrets:
-      steamworks_sdk_repo: ${{ secrets.STEAMWORKS_SDK_REPO }}
-      steamworks_sdk_repo_token: ${{ secrets.STEAMWORKS_SDK_REPO_TOKEN }}
-
-  bundle-export-templates:
-    needs:
-      [build-linux, build-macos, build-server, build-windows-32, build-windows-64]
-    name: Bundle Export Templates
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Templates
-            build-mono: false
-
-          - name: Templates w/ Mono
-            build-mono: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download Godot
-        uses: ./.github/actions/godot-download
-        with:
-          version: ${{ env.GODOT_BASE_VERSION }}-${{ env.GODOT_BASE_VERSION_STATUS }}
-
-      - name: Download Linux Templates (bits=64)
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-${{ matrix.build-mono && 'mono-' || '' }}templates-64
-          path: linux-${{ matrix.build-mono && 'mono-' || '' }}templates-64
-
-      - name: Download Linux Templates (bits=32)
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-${{ matrix.build-mono && 'mono-' || '' }}templates-32
-          path: linux-${{ matrix.build-mono && 'mono-' || '' }}templates-32
-
-      - name: Download Windows Templates (bits=64)
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-${{ matrix.build-mono && 'mono-' || '' }}templates-64
-          path: windows-${{ matrix.build-mono && 'mono-' || '' }}templates-64
-
-      - name: Download Windows Templates (bits=32)
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-${{ matrix.build-mono && 'mono-' || '' }}templates-32
-          path: windows-${{ matrix.build-mono && 'mono-' || '' }}templates-32
-
-      - name: Download MacOS Templates
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-${{ matrix.build-mono && 'mono-' || '' }}templates
-          path: macos-${{ matrix.build-mono && 'mono-' || '' }}templates
-
-      - name: Download Linux Mono Editor (bits=64)
-        uses: actions/download-artifact@v4
-        if: ${{ matrix.build-mono }}
-        with:
-          name: linux-mono-editor-64
-          path: linux-mono-editor-64
-
-      - name: Download Windows Mono Editor (bits=64)
-        uses: actions/download-artifact@v4
-        if: ${{ matrix.build-mono }}
-        with:
-          name: windows-mono-editor-64
-          path: windows-mono-editor-64
-
-      - name: Debug Print
-        run: |
-          ls -a
-
-      - name: Setup ENV Vars
-        run: |
-          echo "TEMPLATES_VERSION=${{ format('{0}.{1}', env.GODOT_BASE_VERSION, env.GODOT_VERSION_STATUS) }}${{ matrix.build-mono && '.mono' || '' }}" >> $GITHUB_ENV
-
-          echo "RELDIR=$HOME/releases" >> $GITHUB_ENV
-          echo "GODOT_BASENAME=GodotSteam_Server_v${{ format('{0}-{1}', env.GODOT_BASE_VERSION, env.GODOT_VERSION_STATUS) }}" >> $GITHUB_ENV
-          echo "TEMPLATES_DIR=$HOME/templates" >> $GITHUB_ENV
-
-      - name: Setup Directories
-        run: |
-          mkdir -p ${{ env.TEMPLATES_DIR }}
-          mkdir -p ${{ env.RELDIR }}
-
-      - name: Bundle Linux
-        run: |
-          if ${{ matrix.build-mono }}; then
-            cp -rp linux-mono-templates-64/data.mono.x11.64.* ${{ env.TEMPLATES_DIR }}/
-            cp -rp linux-mono-templates-32/data.mono.x11.32.* ${{ env.TEMPLATES_DIR }}/
-            mkdir -p ${{ env.TEMPLATES_DIR }}/bcl
-            cp -r linux-mono-editor-64/GodotSharp/Mono/lib/mono/4.5/ ${{ env.TEMPLATES_DIR }}/bcl/net_4_x
-          fi
-          cp linux-${{ matrix.build-mono && 'mono-' || '' }}templates-64/godot.x11.opt.64${{ matrix.build-mono && '.mono' || '' }} ${{ env.TEMPLATES_DIR }}/linux_x11_64_release
-          cp linux-${{ matrix.build-mono && 'mono-' || '' }}templates-64/godot.x11.opt.debug.64${{ matrix.build-mono && '.mono' || '' }} ${{ env.TEMPLATES_DIR }}/linux_x11_64_debug
-          cp linux-${{ matrix.build-mono && 'mono-' || '' }}templates-32/godot.x11.opt.32${{ matrix.build-mono && '.mono' || '' }} ${{ env.TEMPLATES_DIR }}/linux_x11_32_release
-          cp linux-${{ matrix.build-mono && 'mono-' || '' }}templates-32/godot.x11.opt.debug.32${{ matrix.build-mono && '.mono' || '' }} ${{ env.TEMPLATES_DIR }}/linux_x11_32_debug
-          strip ${{ env.TEMPLATES_DIR }}/linux_x11_*
-
-      - name: Bundle Windows
-        run: |
-          if ${{ matrix.build-mono }}; then
-            cp -rp windows-mono-templates-64/data.mono.windows.64.* ${{ env.TEMPLATES_DIR }}/
-            cp -rp windows-mono-templates-32/data.mono.windows.32.* ${{ env.TEMPLATES_DIR }}/
-            mkdir -p ${{ env.TEMPLATES_DIR }}/bcl
-            cp -r windows-mono-editor-64/GodotSharp/Mono/lib/mono/4.5/ ${{ env.TEMPLATES_DIR }}/bcl/net_4_x_win
-          fi
-          cp windows-${{ matrix.build-mono && 'mono-' || '' }}templates-64/godot.windows.opt.64${{ matrix.build-mono && '.mono' || '' }}.exe ${{ env.TEMPLATES_DIR }}/windows_64_release.exe
-          cp windows-${{ matrix.build-mono && 'mono-' || '' }}templates-64/godot.windows.opt.debug.64${{ matrix.build-mono && '.mono' || '' }}.exe ${{ env.TEMPLATES_DIR }}/windows_64_debug.exe
-          cp windows-${{ matrix.build-mono && 'mono-' || '' }}templates-32/godot.windows.opt.32${{ matrix.build-mono && '.mono' || '' }}.exe ${{ env.TEMPLATES_DIR }}/windows_32_release.exe
-          cp windows-${{ matrix.build-mono && 'mono-' || '' }}templates-32/godot.windows.opt.debug.32${{ matrix.build-mono && '.mono' || '' }}.exe ${{ env.TEMPLATES_DIR }}/windows_32_debug.exe
-          strip ${{ env.TEMPLATES_DIR }}/windows*.exe
-
-      - name: Bundle MacOS
-        run: |
-          rm -rf osx_template.app
-          cp -r misc/dist/osx_template.app .
-          mkdir -p osx_template.app/Contents/MacOS
-          cp macos-${{ matrix.build-mono && 'mono-' || '' }}templates/godot.osx.opt.universal${{ matrix.build-mono && '.mono' || '' }} osx_template.app/Contents/MacOS/godot_osx_release.64
-          cp macos-${{ matrix.build-mono && 'mono-' || '' }}templates/godot.osx.opt.debug.universal${{ matrix.build-mono && '.mono' || '' }} osx_template.app/Contents/MacOS/godot_osx_debug.64
-          if ${{ matrix.build-mono }}; then
-            cp -rp macos-mono-templates/data.mono.osx.64.* osx_template.app/Contents/Resources/
-          fi
-          chmod +x osx_template.app/Contents/MacOS/godot_osx*
-          zip -q -9 -r "${{ env.TEMPLATES_DIR }}/osx.zip" osx_template.app
-          rm -rf osx_template.app
-
-      - name: Create Templates TPZ
-        run: |
-          echo "${{ env.TEMPLATES_VERSION }}" > ${{ env.TEMPLATES_DIR }}/version.txt
-          pushd ${{ env.TEMPLATES_DIR }}/..
-          zip -q -9 -r -D "${{ env.RELDIR }}/${{ env.GODOT_BASENAME }}_export-templates${{ matrix.build-mono && '-mono' || '' }}.tpz" templates/*
-          popd
-
-      - name: Upload Export Templates TPZ
-        uses: ./.github/actions/upload-artifact
-        with:
-          path: ${{ env.RELDIR }}/${{ env.GODOT_BASENAME }}_export-templates${{ matrix.build-mono && '-mono' || '' }}.tpz
-          name: export-templates${{ matrix.build-mono && '-mono' || '' }}
+      is_mono: false
+      zip_tag: ${{ needs.env-setup.outputs.zip_tag }}

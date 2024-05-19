@@ -1,0 +1,57 @@
+name: Prep MacOS For Packaging
+
+
+description: Combine x86_64 and arm64 into Universal
+
+
+inputs:
+  target:
+    description: Which packaging are we prepping
+    default: 'editor'
+runs:
+  using: "composite"
+  steps:
+    - name: Create Universal Editor
+      if: ${{ inputs.target == 'editor' }}
+      shell: bash
+      run: |
+        ls -la bin/
+
+        lipo -create bin/godot.osx.opt.tools.x86_64 bin/godot.osx.opt.tools.arm64 -output bin/godot.osx.editor.universal
+
+        cp -r misc/dist/osx_tools.app bin/GodotSteamServer.app
+        mkdir -p bin/GodotSteamServer.app/Contents/MacOS
+
+        cp bin/godot.osx.editor.universal bin/GodotSteamServer.app/Contents/MacOS/Godot
+        chmod +x bin/GodotSteamServer.app/Contents/MacOS/Godot
+
+        cp modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib bin/GodotSteamServer.app/Contents/MacOS/
+
+        cd bin/
+        zip -q -9 -r macos_editor.zip GodotSteamServer.app
+        cd ../
+        ls -la bin/
+
+    - name: Create Universal Templates
+      if: ${{ inputs.target == 'templates' }}
+      shell: bash
+      run: |
+        ls -la bin/
+
+        lipo -create bin/godot.osx.opt.debug.x86_64 bin/godot.osx.opt.debug.arm64 -output bin/godot.osx.template.debug.64
+        lipo -create bin/godot.osx.opt.x86_64 bin/godot.osx.opt.arm64 -output bin/godot.osx.template.64
+        $STRIP bin/godot.osx.template.64
+
+        cp -r misc/dist/osx_template.app bin/
+        mkdir -p bin/osx_template.app/Contents/MacOS
+
+        cp bin/godot.osx.template.64 bin/osx_template.app/Contents/MacOS/godot_osx_release.64
+        cp bin/godot.osx.template.debug.64 bin/osx_template.app/Contents/MacOS/godot_osx_debug.64
+        chmod +x bin/osx_template.app/Contents/MacOS/godot_osx*
+
+        cp modules/godotsteam/sdk/redistributable_bin/osx/libsteam_api.dylib bin/osx_template.app/Contents/MacOS/
+
+        cd bin/
+        zip -q -9 -r macos.zip osx_template.app
+        cd ../
+        ls -la bin/
