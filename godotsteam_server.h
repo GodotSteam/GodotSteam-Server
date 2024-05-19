@@ -1083,9 +1083,6 @@ private:
 	SteamItemDetails_t inventory_details;
 
 	// Networking Sockets
-	uint32 network_connection;
-	uint32 network_poll_group;
-	uint64_t networking_microseconds = 0;
 //		SteamDatagramHostedAddress hosted_address;
 	PoolByteArray routing_blob;
 //		SteamDatagramRelayAuthTicket relay_auth_ticket;

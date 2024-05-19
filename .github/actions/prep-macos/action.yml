@@ -49,7 +49,7 @@ runs:
         cp bin/godot.osx.template.debug.64 bin/osx_template.app/Contents/MacOS/godot_osx_debug.64
         chmod +x bin/osx_template.app/Contents/MacOS/godot_osx*
 
-        cp modules/godotsteam/sdk/redistributable_bin/osx/libsteam_api.dylib bin/osx_template.app/Contents/MacOS/
+        cp modules/godotsteam_server/sdk/redistributable_bin/osx/libsteam_api.dylib bin/osx_template.app/Contents/MacOS/
 
         cd bin/
         zip -q -9 -r macos.zip osx_template.app
