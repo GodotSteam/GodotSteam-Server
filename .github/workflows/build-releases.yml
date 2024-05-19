@@ -60,7 +60,7 @@ jobs:
     with:
       artifact_type: server
       platform: 'Linux Headless'
-      zip_prefix: linux64
+      zip_prefix: server
       zip_tag: ${{ needs.env-setup.outputs.zip_tag }}
 
 

@@ -81,6 +81,25 @@ jobs:
           name: linux-steam
           path: files
 
+      # Server templates and Steam redistributable
+      - name: Download Server ${{ inputs.is_mono && 'Mono ' || '' }}Release Template
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-server-${{ inputs.is_mono && 'mono-' || '' }}release-template
+          path: files
+
+      - name: Download Server ${{ inputs.is_mono && 'Mono ' || '' }}Debug Template
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-server-${{ inputs.is_mono && 'mono-' || '' }}debug-template
+          path: files
+
+      - name: Download Linux Steam Redistributable
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-steam
+          path: files
+
       # Mac templates
       - name: Download MacOS ${{ inputs.is_mono && 'Mono ' || '' }}Template App
         uses: actions/download-artifact@v4
