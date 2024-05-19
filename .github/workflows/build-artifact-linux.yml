@@ -46,11 +46,11 @@ jobs:
           - name: Headless Editor and Templates
             cache-name: server
             platform: server
-            editor-name: godot.x11.opt.tools.64
+            editor-name: godot_server.x11.opt.tools.64
             editor-name-new: godotsteam_server.headless.${{ inputs.godot_version }}.editor.linux.64
-            debug-name: godot.x11.opt.debug.64
+            debug-name: godot_server.x11.opt.debug.64
             debug-name-new: godotsteam_server.headless.${{ inputs.godot_version }}.debug.template.linux.64
-            release-name: godot.x11.opt.64
+            release-name: godot_server.x11.opt.64
             release-name-new: godotsteam_server.headless.${{ inputs.godot_version }}.template.linux.64
 
 
