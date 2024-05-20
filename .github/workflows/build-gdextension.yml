@@ -4,14 +4,18 @@ on:
       steamworks_sdk_tag:
         required: true
         type: string
+
     secrets:
       steamworks_sdk_repo:
         required: true
+
       steamworks_sdk_repo_token:
         required: true
 
+
 env:
   BASE_BRANCH: gdextension
+
 
 jobs:
   build-gdextension:
@@ -27,18 +31,21 @@ jobs:
             target: template_debug
             platform: linux
             arch: x86_64
+
           - identifier: linux-release (x86_64)
             name: Linux (x86_64) - template_release
             runner: ubuntu-20.04
             target: template_release
             platform: linux
             arch: x86_64
+
           - identifier: linux-debug (x86_32)
             name: Linux (x86_32) - template_debug
             runner: ubuntu-20.04
             target: template_debug
             platform: linux
             arch: x86_32
+
           - identifier: linux-release (x86_32)
             name: Linux (x86_32) - template_release
             runner: ubuntu-20.04
@@ -52,18 +59,21 @@ jobs:
             target: template_debug
             platform: windows
             arch: x86_64
+
           - identifier: windows-release (x86_64)
             name: Windows (x86_64) - template_release
             runner: windows-latest
             target: template_release
             platform: windows
             arch: x86_64
+
           - identifier: windows-debug (x86_32)
             name: Windows (x86_32) - template_debug
             runner: windows-latest
             target: template_debug
             platform: windows
             arch: x86_32
+
           - identifier: windows-release (x86_32)
             name: Windows (x86_32) - template_release
             runner: windows-latest
@@ -77,12 +87,14 @@ jobs:
             target: template_release
             platform: macos
             arch: universal
+
           - identifier: macos-debug (universal)
             name: MacOS (universal) - template_debug
             runner: macos-latest
             target: template_debug
             platform: macos
             arch: universal
+
 
     steps:
       - name: Checkout project
@@ -149,6 +161,7 @@ jobs:
           python -c "import sys; print(sys.version)"
           python -m pip install scons
           scons --version
+
       - name: Load .scons_cache directory
         id: godot-extension-cache
         uses: actions/cache@v4
@@ -159,6 +172,7 @@ jobs:
             ${{github.job}}-${{env.BASE_BRANCH}}-${{github.ref}}-${{github.sha}}
             ${{github.job}}-${{env.BASE_BRANCH}}-${{github.ref}}
             ${{github.job}}-${{env.BASE_BRANCH}}-${{env.BASE_BRANCH}}
+
       - name: Compile extension
         shell: sh
         env:
@@ -167,11 +181,13 @@ jobs:
         run: |
           PATH=/opt/buildroot/bin:$PATH scons target='${{ matrix.opts.target }}' platform='${{ matrix.opts.platform }}' arch='${{ matrix.opts.arch }}' ${{ matrix.opts.args }} -j2
           ls -la bin/
-#      - name: Strip bins
-#        if: "!startsWith(matrix.opts.identifier, 'windows-') && startsWith(matrix.opts.arch, 'x86_')"
-#        shell: sh
-#        run: |
-#          strip bin/*
+
+      - name: Strip bins
+        if: "!startsWith(matrix.opts.identifier, 'windows-') && startsWith(matrix.opts.arch, 'x86_')"
+        shell: sh
+        run: |
+          strip bin/*
+
       - name: Prepare artifact
         shell: sh
         run: |
@@ -181,12 +197,6 @@ jobs:
 
           cd project/addons/godotsteam_server
           mkdir win32
-          
-          touch linux64/.gdignore
-          touch linux32/.gdignore
-          touch osx/.gdignore
-          touch win64/.gdignore
-          touch win32/.gdignore
 
           mv *.x86_64.so linux64/ || true
           mv *.x86_32.so linux32/ || true
@@ -196,11 +206,12 @@ jobs:
           rm -rf *.exp *.lib
           cd ../../..
 
-          cp -n 'README.md' 'LICENSE.txt' 'godotsteam_server.gdextension' project/addons/godotsteam_server
-          echo "480" > project/steam_appid.txt
+          cp -n 'godotsteam_server.gdextension' project/addons/godotsteam_server
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: gdextension
           path: |
             project/
+          retention-days: 14

@@ -18,16 +18,42 @@ Feel free to chat with us about GodotSteam on the [CoaguCo Discord server](https
 
 Current Build
 ---
-You can [download pre-compiled versions _(currently v4.1)_ of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
+You can [download pre-compiled versions of this repo here](https://github.com/CoaguCo-Industries/GodotSteam-Server/releases).
 
-**Version 4.1 Changes**
-- Added: a missing constant
-- Changed: backported various fixes from non-server GodotSteam
-- Changed: updated various function arguments to match non-server GodotSteam
-- Changed: constants now live in `godotsteam_server_constants.h` like non-server GodotSteam
-- Changed: further fixes to initialization functions
+**Version 4.3 Changes**
+- Changed: constants list to add missing and remove unused
+- Changed: Networking Messages, Sockets, and Utils now use Steam IDs instead of identity system
+- Changed: various bits and pieces
+- Changed: IP logic for all related functions
+- Changed: UserUGCListSortOrder enums for readability
+- Changed: UGCContentDescriptorID enums for readability
+- Changed: `getResultStatus()` now returns the integer / enum
+- Changed: `getAuthSessionTicket()` now defaults to 0 for Steam ID
+- Fixed: wrong string IP conversions, ***thanks to jeremybeier***
+- Fixed: typo with UGC_MATCHING_UGC_TYPE_ITEMS enum
+- Fixed: minor case issue with Workshop enums
+- Fixed: typo with NETWORKING_CONFIG_TYPE_STRING enum
+- Removed: unnecessary enums
+- Removed: Networking Types identity system and related bits
+- Removed: P2P Networking constants as they are duplicates of the P2PSend enum
+- Removed: `getIdentity()` as it is redundant now
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server4/).
+
+Compatibility
+---
+While rare, sometimes Steamworks SDK updates will break compatilibity with older GodotSteam versions. Any compatability breaks are noted below. API files (dll, so, dylib) _should_ still work for older version.
+
+Steamworks SDK Version | GodotSteam Version
+---|---
+1.59 or newer | 4.2 or newer
+1.58a or older | 4.1 or older
+
+Versions of GodotSteam that have compatibility breaks introduced.
+
+GodotSteam Version | Broken Compatibility
+---|---
+4.3| Networking identity system removed, replaced with Steam IDs
 
 Known Issues
 ---
@@ -49,7 +75,7 @@ When exporting with the GDExtension version, please use the normal Godot Engine 
 
 Donate
 ---
-Pull-requests are the best way to help the project out but you can also donate through [Github Sponsors](https://github.com/sponsors/Gramps), [Ko-Fi](https://ko-fi.com/grampsgarcia), or [Paypal](https://www.paypal.me/sithlordkyle)!
+Pull-requests are the best way to help the project out but you can also donate through [Github Sponsors](https://github.com/sponsors/Gramps)!
 
 License
 ---
