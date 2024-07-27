@@ -156,6 +156,29 @@ SteamNetworkingIdentity SteamServer::getIdentityFromSteamID(uint64_t steam_id) {
 	return remote_identity;
 }
 
+// Convert a string IPv4 address to an integer without using any Steam APIs
+uint32 SteamServer::getIPv4FromString(String ip_string) {
+	uint32 ip_address = 0;
+	PackedStringArray segments = ip_string.split(".");
+
+	if (segments.size() >= 4) {
+		for (int i = 0; i < 4; i++) {
+			if (!segments[i].is_valid_int()) {
+				// Invalid IPv4 - return 0.0.0.0
+				return 0;
+			}
+			int64_t segment = segments[i].to_int();
+			if (segment < 0 || segment > 255) {
+				// Invalid IPv4 - return 0.0.0.0
+				return 0;
+			}
+			ip_address <<= 8;
+			ip_address |= segment;
+		}
+	}
+	return ip_address;
+}
+
 // Convert a string IP address to an integer
 uint32 SteamServer::getIPFromString(String ip_string) {
 	uint32 ip_address = 0;
@@ -290,7 +313,7 @@ bool SteamServer::isServerSecure() {
 // Initialize SteamGameServer client and interface objects, and set server properties which may not be changed.
 // After calling this function, you should set any additional server parameters, and then logOnAnonymous() or logOn().
 bool SteamServer::serverInit(const String& ip, int game_port, int query_port, ServerMode server_mode, const String& version_number) {
-	if (!SteamGameServer_Init(getIPFromString(ip), game_port, query_port, (EServerMode)server_mode, version_number.utf8().get_data())) {
+	if (!SteamGameServer_Init(getIPv4FromString(ip), game_port, query_port, (EServerMode)server_mode, version_number.utf8().get_data())) {
 		return false;
 	}
 	return true;
@@ -302,7 +325,7 @@ bool SteamServer::serverInit(const String& ip, int game_port, int query_port, Se
 Dictionary SteamServer::serverInitEx(const String& ip, int game_port, int query_port, ServerMode server_mode, const String& version_number) {
 	char error_message[STEAM_MAX_ERROR_MESSAGE] = "Server initialized successfully";
 	ESteamAPIInitResult initialize_result = k_ESteamAPIInitResult_FailedGeneric;
-	initialize_result = SteamGameServer_InitEx(getIPFromString(ip), game_port, query_port, (EServerMode)server_mode, version_number.utf8().get_data(), &error_message);
+	initialize_result = SteamGameServer_InitEx(getIPv4FromString(ip), game_port, query_port, (EServerMode)server_mode, version_number.utf8().get_data(), &error_message);
 
 	Dictionary server_initialize;
 	server_initialize["status"] = initialize_result;

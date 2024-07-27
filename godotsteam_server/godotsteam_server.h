@@ -29,6 +29,7 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include "godot_cpp/variant/packed_string_array.hpp"
 
 // Include GodotSteam headers
 #include "godotsteam_server_constants.h"
@@ -1070,6 +1071,7 @@ private:
 	CSteamID createSteamID(uint64_t steam_id, AccountType account_type = AccountType(-1));
 	SteamNetworkingIdentity getIdentityFromSteamID(uint64_t steam_id);
 	uint32 getIPFromSteamIP(SteamNetworkingIPAddr this_address);
+	uint32 getIPv4FromString(String ip_string);
 	uint32 getIPFromString(String ip_string);
 	uint64_t getSteamIDFromIdentity(SteamNetworkingIdentity this_identity);
 	SteamNetworkingIPAddr getSteamIPFromInt(uint32 ip_integer);
