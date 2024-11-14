@@ -16,7 +16,7 @@ Documentation
 ---
 [Documentation is available here](https://godotsteam.com/).
 
-Feel free to chat with us about GodotSteam on the [CoaguCo Discord server](https://discord.gg/SJRSq6K).
+Feel free to chat with us about GodotSteam on the [GodotSteam Discord server](https://discord.gg/SJRSq6K).
 
 Donate
 ---
