@@ -3,16 +3,16 @@ entry_symbol = "godotsteam_server_init"
 compatibility_minimum = 4.1
 
 [libraries]
-macos.debug = "res://addons/godotsteam_server/osx/libgodotsteam_server.debug.framework"
-macos.release = "res://addons/godotsteam_server/osx/libgodotsteam_server.framework"
-windows.debug.x86_64 = "res://addons/godotsteam_server/win64/godotsteam_server.debug.x86_64.dll"
-windows.release.x86_64 = "res://addons/godotsteam_server/win64/godotsteam_server.x86_64.dll"
-windows.debug.x86_32 = "res://addons/godotsteam_server/win32/godotsteam_server.debug.x86_32.dll"
-windows.release.x86_32 = "res://addons/godotsteam_server/win32/godotsteam_server.x86_32.dll"
-linux.debug.x86_64 = "res://addons/godotsteam_server/linux64/libgodotsteam_server.debug.x86_64.so"
-linux.release.x86_64 = "res://addons/godotsteam_server/linux64/libgodotsteam_server.x86_64.so"
-linux.debug.x86_32 = "res://addons/godotsteam_server/linux32/libgodotsteam_server.debug.x86_32.so"
-linux.release.x86_32 = "res://addons/godotsteam_server/linux32/libgodotsteam_server.x86_32.so"
+macos.debug = "res://addons/godotsteam_server/osx/libgodotsteam.macos.template_debug.framework"
+macos.release = "res://addons/godotsteam_server/osx/libgodotsteam.macos.template_release.framework"
+windows.debug.x86_64 = "res://addons/godotsteam_server/win64/libgodotsteam.windows.template_debug.x86_64.dll"
+windows.debug.x86_32 = "res://addons/godotsteam_server/win32/libgodotsteam.windows.template_debug.x86_32.dll"
+windows.release.x86_64 = "res://addons/godotsteam_server/win64/libgodotsteam.windows.template_release.x86_64.dll"
+windows.release.x86_32 = "res://addons/godotsteam_server/win32/libgodotsteam.windows.template_release.x86_32.dll"
+linux.debug.x86_64 = "res://addons/godotsteam_server/linux64/libgodotsteam.linux.template_debug.x86_64.so"
+linux.debug.x86_32 = "res://addons/godotsteam_server/linux32/libgodotsteam.linux.template_debug.x86_32.so"
+linux.release.x86_64 = "res://addons/godotsteam_server/linux64/libgodotsteam.linux.template_release.x86_64.so"
+linux.release.x86_32 = "res://addons/godotsteam_server/linux32/libgodotsteam.linux.template_release.x86_32.so"
 
 [dependencies]
 macos.universal = { "res://addons/godotsteam_server/osx/libsteam_api.dylib": "" }
