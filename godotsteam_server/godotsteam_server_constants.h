@@ -1,5 +1,5 @@
-#include "steam/steam_gameserver.h"
-#include "steam/steam_api.h"
+#ifndef GODOTSTEAM_SERVER_CONSTANTS_H
+#define GODOTSTEAM_SERVER_CONSTANTS_H
 
 // Define Steam API constants
 // Constants with 'deprecated/': these were listed in the SDK docs but do not exist in the header files; safe to remove probably
@@ -87,3 +87,6 @@
 #define NUM_UGC_RESULTS_PER_PAGE kNumUGCResultsPerPage
 #define UGC_QUERY_HANDLE_INVALID k_UGCQueryHandleInvalid
 #define UGC_UPDATE_HANDLE_INVALID k_UGCUpdateHandleInvalid
+
+
+#endif // GODOTSTEAM_SERVER_CONSTANTS_H

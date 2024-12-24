@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="SteamServer" inherits="Object" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
 	<brief_description>
-		Steamworks SDK / API for the Godot Game Engine.
+		An ecosystem of tools for Godot Engine and Valve's Steam.
 	</brief_description>
 	<description>
-		An open-source and fully functional Steamworks SDK / API module and plug-in for the Godot Game Engine.
 		Full documentation and tutorials are available at https://godotsteam.com/.
 	</description>
 	<tutorials>
@@ -122,7 +121,7 @@
 			<return type="bool" />
 			<param index="0" name="query_handle" type="int" />
 			<param index="1" name="preview_file" type="String" />
-			<param index="2" name="type" type="int" enum="SteamServer.ItemPreviewType" />
+			<param index="2" name="type" type="int" enum="ItemPreviewType" />
 			<description>
 				Adds an additional preview file for the item.
 				Then the format of the image should be one that both the web and the application (if necessary) can render, and must be under 1MB. Suggested formats include JPG, PNG and GIF.
@@ -222,7 +221,7 @@
 			</description>
 		</method>
 		<method name="beginAuthSession">
-			<return type="int" enum="SteamServer.BeginAuthSessionResult" />
+			<return type="int" enum="BeginAuthSessionResult" />
 			<param index="0" name="ticket" type="PackedByteArray" />
 			<param index="1" name="ticket_size" type="int" />
 			<param index="2" name="steam_id" type="int" />
@@ -365,7 +364,7 @@
 		<method name="connectByIPAddress">
 			<return type="int" />
 			<param index="0" name="ip_address_with_port" type="String" />
-			<param index="1" name="options" type="Array" />
+			<param index="1" name="options" type="Dictionary" />
 			<description>
 				Begin connecting to a server listen socket that is identified using an [ip-address]:[port], i.e. 127.0.0.1:27015. Used with [method SteamServer.createListenSocketIP].
 			</description>
@@ -374,7 +373,7 @@
 			<return type="int" />
 			<param index="0" name="remote_steam_id" type="int" />
 			<param index="1" name="virtual_port" type="int" />
-			<param index="2" name="options" type="Array" />
+			<param index="2" name="options" type="Dictionary" />
 			<description>
 				Begin connecting to a server that is identified using a platform-specific identifier. This uses the default rendezvous service, which depends on the platform and library configuration. (E.g. on Steam, it goes through the steam backend.) The traffic is relayed over the Steam Datagram Relay network.
 				If you use this, you probably want to call initRelayNetworkAccess when your app initializes. If you need to set any initial config options, pass them here.
@@ -387,7 +386,7 @@
 			<return type="int" />
 			<param index="0" name="remote_steam_id" type="int" />
 			<param index="1" name="virtual_port" type="int" />
-			<param index="2" name="options" type="Array" />
+			<param index="2" name="options" type="Dictionary" />
 			<description>
 				Client call to connect to a server hosted in a Valve data center, on the specified virtual port. You must have placed a ticket for this server into the cache, or else this connect attempt will fail!
 				Pass your options as an array of arrays; each sub-array containing: [b]config value (int), data type (int), and data value (int or string).[/b]
@@ -432,7 +431,7 @@
 		</method>
 		<method name="createHTTPRequest">
 			<return type="int" />
-			<param index="0" name="request_method" type="int" enum="SteamServer.HTTPMethod" />
+			<param index="0" name="request_method" type="int" enum="HTTPMethod" />
 			<param index="1" name="absolute_url" type="String" />
 			<description>
 				Initializes a new HTTP request. Requires the method such as GET or POST and the absolute URL for the request. Both http and https are supported, so this string must start with "http://" or "https://" and should look like "http://store.steampowered.com/app/10/" or similar. This call returns a handle that you can use to make further calls to setup and then send the HTTP request with [method SteamServer.sendHTTPRequest] or [method SteamServer.sendHTTPRequestAndStreamResponse]. Don't forget to free the HTTP request when you're done with it to prevent leaking memory by calling [method SteamServer.releaseHTTPRequest].
@@ -441,7 +440,7 @@
 		<method name="createHostedDedicatedServerListenSocket">
 			<return type="int" />
 			<param index="0" name="virtual_port" type="int" />
-			<param index="1" name="options" type="Array" />
+			<param index="1" name="options" type="Dictionary" />
 			<description>
 				Create a listen socket on the specified virtual port. The physical UDP port to use will be determined by the SDR_LISTEN_PORT environment variable. If a UDP port is not configured, this call will fail.
 				This function should be used when you are using the ticket generator library to issue your own tickets. Clients connecting to the server on this virtual port will need a ticket, and they must connect using [method SteamServer.connectToHostedDedicatedServer].
@@ -452,7 +451,7 @@
 		<method name="createItem">
 			<return type="void" />
 			<param index="0" name="app_id" type="int" />
-			<param index="1" name="file_type" type="int" enum="SteamServer.WorkshopFileType" />
+			<param index="1" name="file_type" type="int" enum="WorkshopFileType" />
 			<description>
 				Creates a new workshop item with no content attached yet.
 				Triggers a [signal SteamServer.item_created] callback.
@@ -461,7 +460,7 @@
 		<method name="createListenSocketIP">
 			<return type="int" />
 			<param index="0" name="ip_reference" type="String" />
-			<param index="1" name="options" type="Array" />
+			<param index="1" name="options" type="Dictionary" />
 			<description>
 				Creates a "server" socket that listens for clients to connect to by calling [method SteamServer.connectByIPAddress], over ordinary UDP (IPv4 or IPv6)
 				Pass your options as an array of arrays; each sub-array containing: [b]config value (int), data type (int), and data value (int or string).[/b]
@@ -471,7 +470,7 @@
 		<method name="createListenSocketP2P">
 			<return type="int" />
 			<param index="0" name="virtual_port" type="int" />
-			<param index="1" name="options" type="Array" />
+			<param index="1" name="options" type="Dictionary" />
 			<description>
 				Create a listen socket that will listen for P2P connections sent to our FakeIP.  A peer can initiate connections to this listen socket by calling [method SteamServer.connectByIPAddress].
 			</description>
@@ -479,7 +478,7 @@
 		<method name="createListenSocketP2PFakeIP">
 			<return type="int" />
 			<param index="0" name="fake_port" type="int" />
-			<param index="1" name="options" type="Array" />
+			<param index="1" name="options" type="Dictionary" />
 			<description>
 				Like [method SteamServer.createListenSocketIP], but clients will connect using [method SteamServer.connectP2P]. The connection will be relayed through the Valve network.
 				[b]virtual_port[/b] specifies how clients can connect to this socket using [method SteamServer.connectP2P]. It's very common for applications to only have one listening socket; in that case, use zero. If you need to open multiple listen sockets and have clients be able to connect to one or the other, then virtual_port should be a small integer (less than 1000) unique to each listen socket you create.
@@ -496,8 +495,8 @@
 		</method>
 		<method name="createQueryAllUGCRequest">
 			<return type="int" />
-			<param index="0" name="query_type" type="int" enum="SteamServer.UGCQuery" />
-			<param index="1" name="matching_type" type="int" enum="SteamServer.UGCMatchingUGCType" />
+			<param index="0" name="query_type" type="int" enum="UGCQuery" />
+			<param index="1" name="matching_type" type="int" enum="UGCMatchingUGCType" />
 			<param index="2" name="creator_id" type="int" />
 			<param index="3" name="consumer_id" type="int" />
 			<param index="4" name="page" type="int" />
@@ -523,9 +522,9 @@
 		<method name="createQueryUserUGCRequest">
 			<return type="int" />
 			<param index="0" name="account_id" type="int" />
-			<param index="1" name="list_type" type="int" enum="SteamServer.UserUGCList" />
-			<param index="2" name="matching_ugc_type" type="int" enum="SteamServer.UGCMatchingUGCType" />
-			<param index="3" name="sort_order" type="int" enum="SteamServer.UserUGCListSortOrder" />
+			<param index="1" name="list_type" type="int" enum="UserUGCList" />
+			<param index="2" name="matching_ugc_type" type="int" enum="UGCMatchingUGCType" />
+			<param index="3" name="sort_order" type="int" enum="UserUGCListSortOrder" />
 			<param index="4" name="creator_id" type="int" />
 			<param index="5" name="consumer_id" type="int" />
 			<param index="6" name="page" type="int" />
@@ -680,7 +679,7 @@
 		</method>
 		<method name="getAuthSessionTicket">
 			<return type="Dictionary" />
-			<param index="0" name="remote_steam_id" type="int" default="&quot;&quot;" />
+			<param index="0" name="remote_steam_id" type="int" default="0" />
 			<description>
 				Retrieve an authentication ticket to be sent to the entity who wishes to authenticate you.
 				After calling this you can send the ticket to the entity where they can then call [method SteamServer.beginAuthSession] to verify this entities integrity.
@@ -696,7 +695,7 @@
 			</description>
 		</method>
 		<method name="getAuthenticationStatus">
-			<return type="int" enum="SteamServer.NetworkingAvailability" />
+			<return type="int" enum="NetworkingAvailability" />
 			<description>
 				Query our readiness to participate in authenticated communications. A [signal SteamServer.network_authentication_status] callback is posted any time this status changes, but you can use this function to query it at any time.
 			</description>
@@ -718,8 +717,8 @@
 		</method>
 		<method name="getConfigValue">
 			<return type="Dictionary" />
-			<param index="0" name="config_value" type="int" enum="SteamServer.NetworkingConfigValue" />
-			<param index="1" name="scope_type" type="int" enum="SteamServer.NetworkingConfigScope" />
+			<param index="0" name="config_value" type="int" enum="NetworkingConfigValue" />
+			<param index="1" name="scope_type" type="int" enum="NetworkingConfigScope" />
 			<param index="2" name="connection_handle" type="int" />
 			<description>
 				Get a configuration value.
@@ -731,7 +730,7 @@
 		</method>
 		<method name="getConfigValueInfo">
 			<return type="Dictionary" />
-			<param index="0" name="config_value" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="0" name="config_value" type="int" enum="NetworkingConfigValue" />
 			<description>
 				Returns info about a configuration value. For values to pass to config_value, check the SDK's listing. next_value can be used to iterate through all of the known configuration values.
 				The returned dictionary contains the following keys: [b]type (int), scope (int), and next_value (int).[/b]
@@ -863,7 +862,7 @@
 			</description>
 		</method>
 		<method name="getHTTPResponseHeaderValue">
-			<return type="int" />
+			<return type="PackedByteArray" />
 			<param index="0" name="request_handle" type="int" />
 			<param index="1" name="header_name" type="String" />
 			<param index="2" name="buffer_size" type="int" />
@@ -872,7 +871,7 @@
 			</description>
 		</method>
 		<method name="getHTTPStreamingResponseBodyData">
-			<return type="int" />
+			<return type="PackedByteArray" />
 			<param index="0" name="request_handle" type="int" />
 			<param index="1" name="offset" type="int" />
 			<param index="2" name="buffer_size" type="int" />
@@ -991,6 +990,7 @@
 		<method name="getListenSocketAddress">
 			<return type="String" />
 			<param index="0" name="socket" type="int" />
+			<param index="1" name="with_port" type="bool" default="true" />
 			<description>
 				Returns local IP and port that a listen socket created using [method SteamServer.createListenSocketIP] is bound to.
 				[b]Note:[/b] This is not how you find out your public IP that clients can connect to.
@@ -1040,6 +1040,14 @@
 			<return type="int" />
 			<description>
 				Gets the total number of items the current user is subscribed to for the game or application.
+			</description>
+		</method>
+				<method name="getNumSupportedGameVersions">
+			<return type="int" />
+			<param index="0" name="query_handle" type="int" />
+			<param index="1" name="index" type="int" />
+			<description>
+				Get the number of supported game versions for this UGC content.
 			</description>
 		</method>
 		<method name="getP2PSessionState">
@@ -1268,7 +1276,7 @@
 			<return type="Dictionary" />
 			<param index="0" name="query_handle" type="int" />
 			<param index="1" name="index" type="int" />
-			<param index="2" name="stat_type" type="int" enum="SteamServer.ItemStatistic" />
+			<param index="2" name="stat_type" type="int" enum="ItemStatistic" />
 			<description>
 				Retrieve various statistics of an individual workshop item after receiving a querying UGC call result.
 				The returned dictionary contains the following keys:
@@ -1307,7 +1315,7 @@
 			</description>
 		</method>
 		<method name="getRelayNetworkStatus">
-			<return type="int" enum="SteamServer.NetworkingAvailability" />
+			<return type="int" enum="NetworkingAvailability" />
 			<description>
 				Fetch current status of the relay network.
 				[signal SteamServer.relay_network_status] is also a callback. It will be triggered on both the user and gameserver interfaces any time the status changes, or ping measurement starts or stops.
@@ -1362,7 +1370,7 @@
 			</description>
 		</method>
 		<method name="getResultStatus">
-			<return type="int" enum="SteamServer.Result" />
+			<return type="int" enum="Result" />
 			<param index="0" name="this_inventory_handle" type="int" default="0" />
 			<description>
 				Find out the status of an asynchronous inventory result handle. This is a polling equivalent to registering a callback function for [signal SteamServer.inventory_result_ready].
@@ -1411,6 +1419,20 @@
 			<return type="Array" />
 			<description>
 				Gets a list of all of the items the current user is subscribed to for the current game.
+			</description>
+		</method>
+		<method name="getSupportedGameVersionData">
+			<return type="Dictionary" />
+			<param index="0" name="query_handle" type="int" />
+			<param index="1" name="index" type="int" />
+			<param index="2" name="version_index" type="int" />
+			<description>
+				Some items can specify that they have a version that is valid for a range of game versions (Steam branch).
+				[codeblock]
+				┠╴min (string)
+				┠╴max (string)
+				┖╴size (uint32)
+				[/codeblock]
 			</description>
 		</method>
 		<method name="getUserAchievement">
@@ -1470,6 +1492,12 @@
 				Asynchronously retrieves data about whether the user accepted the Workshop EULA for the current app.
 			</description>
 		</method>
+		<method name="get_godotsteam_version" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns the current version of GodotSteam you are using.
+			</description>
+		</method>
 		<method name="grantPromoItems">
 			<return type="int" />
 			<description>
@@ -1500,7 +1528,7 @@
 			</description>
 		</method>
 		<method name="initAuthentication">
-			<return type="int" enum="SteamServer.NetworkingAvailability" />
+			<return type="int" enum="NetworkingAvailability" />
 			<description>
 				Indicate our desire to be ready participate in authenticated communications. If we are currently not ready, then steps will be taken to obtain the necessary certificates. (This includes a certificate for us, as well as any CA certificates needed to authenticate peers.)
 			</description>
@@ -1516,6 +1544,7 @@
 		<method name="initWorkshopForGameServer">
 			<return type="bool" />
 			<param index="0" name="workshop_depot_id" type="int" />
+			<param index="1" name="folder" type="String" />
 			<description>
 				Lets game servers set a specific workshop folder before issuing any UGC commands.
 				This is helpful if you want to support multiple game servers running out of the same install folder.
@@ -1621,6 +1650,13 @@
 				┠╴success (bool)
 				┖╴ping_location (PoolByeArray)
 				[/codeblock]
+			</description>
+		</method>
+		<method name="prioritizeHTTPRequest">
+			<return type="bool" />
+			<param index="0" name="request_handle" type="int" />
+			<description>
+				Prioritizes a request which has already been sent by moving it at the front of the queue.
 			</description>
 		</method>
 		<method name="readP2PPacket">
@@ -1900,7 +1936,7 @@
 			<return type="bool" />
 			<param index="0" name="remote_steam_id" type="int" />
 			<param index="1" name="data" type="PackedByteArray" />
-			<param index="2" name="send_type" type="int" enum="SteamServer.P2PSend" />
+			<param index="2" name="send_type" type="int" enum="P2PSend" />
 			<param index="3" name="channel" type="int" default="0" />
 			<description>
 				Sends a P2P packet to the specified user.
@@ -1930,7 +1966,7 @@
 			</description>
 		</method>
 		<method name="serializeResult">
-			<return type="String" />
+			<return type="PackedByteArray" />
 			<param index="0" name="this_inventory_handle" type="int" default="0" />
 			<description>
 				Serialized result sets contain a short signature which can't be forged or replayed across different game sessions.
@@ -1944,7 +1980,7 @@
 			<param index="0" name="ip" type="String" />
 			<param index="1" name="game_port" type="int" />
 			<param index="2" name="query_port" type="int" />
-			<param index="3" name="server_mode" type="int" enum="SteamServer.ServerMode" />
+			<param index="3" name="server_mode" type="int" enum="ServerMode" />
 			<param index="4" name="version_number" type="String" />
 			<description>
 				Initialize SteamGameServer client and interface objects, and set server properties which may not be changed.
@@ -1956,7 +1992,7 @@
 			<param index="0" name="ip" type="String" />
 			<param index="1" name="game_port" type="int" />
 			<param index="2" name="query_port" type="int" />
-			<param index="3" name="server_mode" type="int" enum="SteamServer.ServerMode" />
+			<param index="3" name="server_mode" type="int" enum="ServerMode" />
 			<param index="4" name="version_number" type="String" />
 			<description>
 				Initialize SteamGameServer client and interface objects, and set server properties which may not be changed.
@@ -1979,6 +2015,14 @@
 			<return type="void" />
 			<description>
 				Shut down the server connection to SteamServer.
+			</description>
+		</method>
+		<method name="setAdminQuery">
+			<return type="bool" />
+			<param index="0" name="update_handle" type="int" />
+			<param index="1" name="admin_query" type="bool" />
+			<description>
+				Admin queries return hidden items.
 			</description>
 		</method>
 		<method name="setAdvertiseServerActive">
@@ -2024,7 +2068,7 @@
 		<method name="setConnectionConfigValueFloat">
 			<return type="bool" />
 			<param index="0" name="connection" type="int" />
-			<param index="1" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="1" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="2" name="value" type="float" />
 			<description>
 				Set a configuration value.
@@ -2033,7 +2077,7 @@
 		<method name="setConnectionConfigValueInt32">
 			<return type="bool" />
 			<param index="0" name="connection" type="int" />
-			<param index="1" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="1" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="2" name="value" type="int" />
 			<description>
 				Set a configuration value.
@@ -2042,7 +2086,7 @@
 		<method name="setConnectionConfigValueString">
 			<return type="bool" />
 			<param index="0" name="connection" type="int" />
-			<param index="1" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="1" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="2" name="value" type="String" />
 			<description>
 				Set a configuration value.
@@ -2107,7 +2151,7 @@
 		</method>
 		<method name="setGlobalConfigValueFloat">
 			<return type="bool" />
-			<param index="0" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="0" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="1" name="value" type="float" />
 			<description>
 				Set a configuration value.
@@ -2115,7 +2159,7 @@
 		</method>
 		<method name="setGlobalConfigValueInt32">
 			<return type="bool" />
-			<param index="0" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="0" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="1" name="value" type="int" />
 			<description>
 				Set a configuration value.
@@ -2123,7 +2167,7 @@
 		</method>
 		<method name="setGlobalConfigValueString">
 			<return type="bool" />
-			<param index="0" name="config" type="int" enum="SteamServer.NetworkingConfigValue" />
+			<param index="0" name="config" type="int" enum="NetworkingConfigValue" />
 			<param index="1" name="value" type="String" />
 			<description>
 				Set a configuration value.
@@ -2197,10 +2241,10 @@
 			</description>
 		</method>
 		<method name="setHTTPRequestRawPostBody">
-			<return type="int" />
+			<return type="bool" />
 			<param index="0" name="request_handle" type="int" />
 			<param index="1" name="content_type" type="String" />
-			<param index="2" name="body_length" type="int" />
+			<param index="2" name="body" type="String" />
 			<description>
 				Sets the body for an HTTP Post request.
 				Will fail and return false on a GET request, and will fail if POST params have already been set for the request. Setting this raw body makes it the only contents for the post, the content_type parameter will set the "content-type" header for the request to inform the server how to interpret the body.
@@ -2301,7 +2345,7 @@
 		<method name="setItemVisibility">
 			<return type="bool" />
 			<param index="0" name="update_handle" type="int" />
-			<param index="1" name="visibility" type="int" enum="SteamServer.RemoteStoragePublishedFileVisibility" />
+			<param index="1" name="visibility" type="int" enum="RemoteStoragePublishedFileVisibility" />
 			<description>
 				Sets the visibility of an item.
 			</description>
@@ -2434,6 +2478,15 @@
 			<param index="0" name="region" type="String" />
 			<description>
 				Set the region the server is located in.
+			</description>
+		</method>
+		<method name="setRequiredGameVersions">
+			<return type="bool" />
+			<param index="0" name="query_handle" type="int" />
+			<param index="1" name="game_branch_min" type="String" />
+			<param index="2" name="game_branch_max" type="String" />
+			<description>
+				An empty string for either parameter means that it will match any version on that end of the range. This will only be applied if the actual content has been changed.
 			</description>
 		</method>
 		<method name="setReturnAdditionalPreviews">
@@ -2776,6 +2829,12 @@
 			</description>
 		</method>
 	</methods>
+	<members>
+		<member name="inventory_handle" type="int" setter="set_inventory_handle" getter="get_inventory_handle" default="0">
+		</member>
+		<member name="inventory_update_handle" type="int" setter="set_inventory_update_handle" getter="get_inventory_update_handle" default="0">
+		</member>
+	</members>
 	<signals>
 		<signal name="add_app_dependency_result">
 			<param index="0" name="result" type="int" />
@@ -3733,6 +3792,8 @@
 		</constant>
 		<constant name="NETWORKING_CONFIG_IP_ALLOW_WITHOUT_AUTH" value="23" enum="NetworkingConfigValue">
 		</constant>
+		<constant name="NETWORKING_CONFIG_IP_LOCAL_HOST_ALLOW_WITHOUT_AUTH" value="52" enum="NetworkingConfigValue">
+		</constant>
 		<constant name="NETWORKING_CONFIG_MTU_PACKET_SIZE" value="32" enum="NetworkingConfigValue">
 		</constant>
 		<constant name="NETWORKING_CONFIG_MTU_DATA_SIZE" value="33" enum="NetworkingConfigValue">
@@ -3935,8 +3996,6 @@
 		</constant>
 		<constant name="IDENTITY_TYPE_SONY_PSN" value="18" enum="NetworkingIdentityType">
 		</constant>
-		<constant name="IDENTITY_TYPE_GOOGLE_STADIA" value="19" enum="NetworkingIdentityType">
-		</constant>
 		<constant name="IDENTITY_TYPE_FORCE_32BIT" value="2147483647" enum="NetworkingIdentityType">
 		</constant>
 		<constant name="NETWORKING_SOCKET_DEBUG_OUTPUT_TYPE_NONE" value="0" enum="NetworkingSocketsDebugOutputType">
@@ -4095,7 +4154,7 @@
 		</constant>
 		<constant name="RESULT_ACCOUNT_NOT_FEATURED" value="45" enum="Result">
 		</constant>
-		<constant name="RESULT_ADMINISTRATO_ROK" value="46" enum="Result">
+		<constant name="RESULT_ADMINISTRATOR_OK" value="46" enum="Result">
 		</constant>
 		<constant name="RESULT_CONTENT_VERSION" value="47" enum="Result">
 		</constant>
@@ -4263,6 +4322,8 @@
 		</constant>
 		<constant name="RESULT_FAMILY_SIZE_LIMIT_EXCEEDED" value="129" enum="Result">
 		</constant>
+		<constant name="RESULT_OFFLINE_APP_CACHE_INVALID" value="130" enum="Result">
+		</constant>
 		<constant name="SERVER_MODE_INVALID" value="0" enum="ServerMode">
 		</constant>
 		<constant name="SERVER_MODE_NO_AUTHENTICATION" value="1" enum="ServerMode">
@@ -4342,8 +4403,6 @@
 		<constant name="UGC_MATCHING_UGC_TYPE_CONTROLLER_BINDINGS" value="11" enum="UGCMatchingUGCType">
 		</constant>
 		<constant name="UGC_MATCHING_UGC_TYPE_GAME_MANAGED_ITEMS" value="12" enum="UGCMatchingUGCType">
-		</constant>
-		<constant name="WORKSHOP_FILE_TYPE_CLIP" value="16" enum="WorkshopFileType">
 		</constant>
 		<constant name="UGC_MATCHING_UGC_TYPE_ALL" value="-1" enum="UGCMatchingUGCType">
 		</constant>
@@ -4488,6 +4547,8 @@
 		<constant name="WORKSHOP_FILE_TYPE_STEAM_VIDEO" value="14" enum="WorkshopFileType">
 		</constant>
 		<constant name="WORKSHOP_FILE_TYPE_GAME_MANAGED_ITEM" value="15" enum="WorkshopFileType">
+		</constant>
+		<constant name="WORKSHOP_FILE_TYPE_CLIP" value="16" enum="WorkshopFileType">
 		</constant>
 		<constant name="WORKSHOP_FILE_TYPE_MAX" value="17" enum="WorkshopFileType">
 		</constant>

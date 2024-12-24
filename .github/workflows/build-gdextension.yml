@@ -131,7 +131,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install yasm
           cd /opt
-          curl -LO https://downloads.tuxfamily.org/godotengine/toolchains/linux/2021-02-11/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
+          curl -LO https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar xf x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           rm -f x86_64-godot-linux-gnu_sdk-buildroot.tar.bz2
           mv x86_64-godot-linux-gnu_sdk-buildroot buildroot
@@ -145,7 +145,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install yasm
           cd /opt
-          curl -LO https://downloads.tuxfamily.org/godotengine/toolchains/linux/2021-02-11/i686-godot-linux-gnu_sdk-buildroot.tar.bz2
+          curl -LO https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/i686-godot-linux-gnu_sdk-buildroot.tar.bz2
           tar xf i686-godot-linux-gnu_sdk-buildroot.tar.bz2
           rm -f i686-godot-linux-gnu_sdk-buildroot.tar.bz2
           mv i686-godot-linux-gnu_sdk-buildroot buildroot
