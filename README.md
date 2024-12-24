@@ -24,7 +24,7 @@ Current Build
 ---
 You can [download pre-compiled versions of this repo here](https://github.com/GodotSteam/GodotSteam-Server/releases).
 
-**Version 4.3 Changes**
+**Version 4.4 Changes**
 - Added: public properties with set/get functions
 - Added: failures now print to editor
 - Changed: updated to Steamworks SDK 1.61
