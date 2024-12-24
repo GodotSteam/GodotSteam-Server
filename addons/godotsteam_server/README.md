@@ -1,7 +1,7 @@
-# GodotSteam Server for GDNative
-An open-source and fully functional Steamworks SDK / API server module and plug-in for the Godot Game Engine (version 3.x). For the Windows, Linux, and Mac platforms.
+# GodotSteam Server for GDNative | Community Edition
+An ecosystem of tools for [Godot Engine](https://godotengine.org) and [Valve's Steam](https://store.steampowered.com). For the Windows, Linux, and Mac platforms.
 
-**Notice: GodotSteam Server GDNative is now retired. This branch still works fine but will not receive any further updates.**
+**Notice: GodotSteam GDNative is now retired. This branch still works fine but will not receive any further updates.**
 
 Additional Flavors
 ---
@@ -14,9 +14,9 @@ Pre-Compiles | Plug-ins | Server | Examples
 
 Documentation
 ---
-[Documentation is available here](https://godotsteam.com/).
+[Documentation is available here](https://godotsteam.com/). You can also check out the Search Help section inside Godot Engine after compiling it with GodotSteam Server.
 
-Feel free to chat with us about GodotSteam on the [GodotSteam Discord server](https://discord.gg/SJRSq6K).
+Feel free to chat with us about GodotSteam or ask for assistance on the [Discord server](https://discord.gg/SJRSq6K).
 
 Donate
 ---
