@@ -1,4 +1,4 @@
-# GodotSteam Server for Godot Engine 4.x | Community Edition
+# GodotSteam Server for Godot Engine 3.x | Community Edition
 An open-source and fully functional Steamworks SDK / API server module and plug-in for the Godot Game Engine (version 3.x). For the Windows, Linux, and Mac platforms. 
 
 Additional Flavors
