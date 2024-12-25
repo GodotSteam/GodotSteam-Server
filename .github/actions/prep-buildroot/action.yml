@@ -17,7 +17,7 @@ runs:
     - name: Download Buildroot
       shell: bash
       run: |
-        curl -fLO https://download.tuxfamily.org/godotengine/toolchains/linux/2021-02-11/${{ inputs.toolchain-name }}.tar.bz2
+        curl -fLO https://github.com/godotengine/buildroot/releases/download/godot-2023.08.x-4/${{ inputs.toolchain-name }}.tar.bz2
 
         tar -xf ${{ inputs.toolchain-name }}.tar.bz2
         chmod +x "${{ inputs.toolchain-name }}/relocate-sdk.sh"

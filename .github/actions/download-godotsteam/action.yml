@@ -1,20 +1,20 @@
-name: Download GodotSteam
+name: Download GodotSteam Server
 
 
-description: Download and extract the GodotSteam source code for use in compiling
+description: Download and extract the GodotSteam Server source code for use in compiling
 
 
 runs:
   using: "composite"
 
   steps:
-    - name: Download and extract GodotSteam
+    - name: Download and extract GodotSteam Server
       uses: actions/checkout@v4
       with:
         path: "godotsteam_server"
         ref: "godot3"
 
-    - name: Copy GodotSteam
+    - name: Copy GodotSteam Server
       shell: bash
       run: |
         cp -r godotsteam_server ./modules/godotsteam_server

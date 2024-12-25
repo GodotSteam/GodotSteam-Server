@@ -8,19 +8,19 @@ on:
         description: 'Steamworks SDK Github tag:'
         required: true
         type: string
-        default: 'sdk-1.59'
+        default: 'sdk-1.61'
 
       godot_tag:
         description: 'Godot Github tag:'
         required: true
         type: string
-        default: '3.5.3-stable'
+        default: '3.6-stable'
 
       godotsteam_version:
         description: 'GodotSteam Server version number:'
         required: true
         type: string
-        default: '3.3'
+        default: '3.4'
 
 
 jobs:
