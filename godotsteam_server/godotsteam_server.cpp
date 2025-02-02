@@ -32,6 +32,7 @@ SteamServer::SteamServer():
 	callbackClientGroupStatus(this, &SteamServer::client_group_status),
 	callbackAssociateClan(this, &SteamServer::associate_clan),
 	callbackPlayerCompat(this, &SteamServer::player_compat),
+	callbackValidateAuthTicketResponse(this, &SteamServer::validate_auth_ticket_response),
 
 	// Game Server Stats
 	callbackStatsStored(this, &SteamServer::stats_stored),
@@ -1454,15 +1455,15 @@ int SteamServer::sendMessageToUser(uint64_t remote_steam_id, const PackedByteArr
 
 // Creates a "server" socket that listens for clients to connect to by calling ConnectByIPAddress, over ordinary UDP (IPv4 or IPv6)
 uint32 SteamServer::createListenSocketIP(const String &ip_address, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketIP");
-	uint32 listen_socket = SteamNetworkingSockets()->CreateListenSocketIP(getSteamIPFromString(ip_address), config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketIP");
+	uint32 listen_socket = SteamGameServerNetworkingSockets()->CreateListenSocketIP(getSteamIPFromString(ip_address), config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
 
 // Like CreateListenSocketIP, but clients will connect using ConnectP2P. The connection will be relayed through the Valve network.
 uint32 SteamServer::createListenSocketP2P(int virtual_port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketP2P");
-	uint32 listen_socket = SteamNetworkingSockets()->CreateListenSocketP2P(virtual_port, config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketP2P");
+	uint32 listen_socket = SteamGameServerNetworkingSockets()->CreateListenSocketP2P(virtual_port, config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
 
@@ -1470,54 +1471,54 @@ uint32 SteamServer::createListenSocketP2P(int virtual_port, Dictionary config_op
 // which depends on the platform and library configuration. (E.g. on Steam, it goes through the steam backend.) The traffic is
 // relayed over the Steam Datagram Relay network.
 uint32 SteamServer::connectP2P(uint64_t remote_steam_id, int virtual_port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectP2P");
-	uint32 listen_socket = SteamNetworkingSockets()->ConnectP2P(getIdentityFromSteamID(remote_steam_id), virtual_port, config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectP2P");
+	uint32 listen_socket = SteamGameServerNetworkingSockets()->ConnectP2P(getIdentityFromSteamID(remote_steam_id), virtual_port, config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
 
 // Begin connecting to a server listen socket that is identified using an [ip-address]:[port], i.e. 127.0.0.1:27015. Used with
 // createListenSocketIP
 uint32 SteamServer::connectByIPAddress(const String &ip_address_with_port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectByIPAddress");
-	return SteamNetworkingSockets()->ConnectByIPAddress(getSteamIPFromString(ip_address_with_port), config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectByIPAddress");
+	return SteamGameServerNetworkingSockets()->ConnectByIPAddress(getSteamIPFromString(ip_address_with_port), config_options.size(), convert_config_options(config_options));
 }
 
 // Client call to connect to a server hosted in a Valve data center, on the specified virtual port. You must have placed a ticket
 // for this server into the cache, or else this connect attempt will fail!
 uint32 SteamServer::connectToHostedDedicatedServer(uint64_t remote_steam_id, int virtual_port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectToHostedDedicatedServer");
-	uint32 listen_socket = SteamNetworkingSockets()->ConnectToHostedDedicatedServer(getIdentityFromSteamID(remote_steam_id), virtual_port, config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: connectToHostedDedicatedServer");
+	uint32 listen_socket = SteamGameServerNetworkingSockets()->ConnectToHostedDedicatedServer(getIdentityFromSteamID(remote_steam_id), virtual_port, config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
 
 // Accept an incoming connection that has been received on a listen socket.
 int SteamServer::acceptConnection(uint32 connection_handle) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: acceptConnection");
-	return SteamNetworkingSockets()->AcceptConnection((HSteamNetConnection)connection_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: acceptConnection");
+	return SteamGameServerNetworkingSockets()->AcceptConnection((HSteamNetConnection)connection_handle);
 }
 
 // Disconnects from the remote host and invalidates the connection handle. Any unread data on the connection is discarded.
 bool SteamServer::closeConnection(uint32 peer, int reason, const String &debug_message, bool linger) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: closeConnection");
-	return SteamNetworkingSockets()->CloseConnection((HSteamNetConnection)peer, reason, debug_message.utf8().get_data(), linger);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: closeConnection");
+	return SteamGameServerNetworkingSockets()->CloseConnection((HSteamNetConnection)peer, reason, debug_message.utf8().get_data(), linger);
 }
 
 // Destroy a listen socket. All the connections that were accepted on the listen socket are closed ungracefully.
 bool SteamServer::closeListenSocket(uint32 socket) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: closeListenSocket");
-	return SteamNetworkingSockets()->CloseListenSocket((HSteamListenSocket)socket);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: closeListenSocket");
+	return SteamGameServerNetworkingSockets()->CloseListenSocket((HSteamListenSocket)socket);
 }
 
 // Create a pair of connections that are talking to each other, e.g. a loopback connection. This is very useful for testing, or so
 // that your client/server code can work the same even when you are running a local "server".
 Dictionary SteamServer::createSocketPair(bool loopback, uint64_t remote_steam_id1, uint64_t remote_steam_id2) {
 	Dictionary connection_pair;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, connection_pair, "[STEAM SERVER] Networking Sockets class not found when calling: createSocketPair");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, connection_pair, "[STEAM SERVER] Networking Sockets class not found when calling: createSocketPair");
 	uint32 connection1 = 0;
 	uint32 connection2 = 0;
 	SteamNetworkingIdentity remote_identity1 = getIdentityFromSteamID(remote_steam_id1);
 	SteamNetworkingIdentity remote_identity2 = getIdentityFromSteamID(remote_steam_id2);
-	bool success = SteamNetworkingSockets()->CreateSocketPair(&connection1, &connection2, loopback, &remote_identity1, &remote_identity2);
+	bool success = SteamGameServerNetworkingSockets()->CreateSocketPair(&connection1, &connection2, loopback, &remote_identity1, &remote_identity2);
 	// Populate the dictionary
 	connection_pair["success"] = success;
 	connection_pair["connection1"] = connection1;
@@ -1528,9 +1529,9 @@ Dictionary SteamServer::createSocketPair(bool loopback, uint64_t remote_steam_id
 // Send a message to the remote host on the specified connection.
 Dictionary SteamServer::sendMessageToConnection(uint32 connection_handle, const PackedByteArray data, int flags) {
 	Dictionary message_response;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, message_response, "[STEAM SERVER] Networking Sockets class not found when calling: sendMessageToConnection");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, message_response, "[STEAM SERVER] Networking Sockets class not found when calling: sendMessageToConnection");
 	int64 number;
-	int result = SteamNetworkingSockets()->SendMessageToConnection((HSteamNetConnection)connection_handle, data.ptr(), data.size(), flags, &number);
+	int result = SteamGameServerNetworkingSockets()->SendMessageToConnection((HSteamNetConnection)connection_handle, data.ptr(), data.size(), flags, &number);
 	// Populate the dictionary
 	message_response["result"] = result;
 	message_response["message_number"] = (uint64_t)number;
@@ -1543,7 +1544,7 @@ Dictionary SteamServer::sendMessageToConnection(uint32 connection_handle, const 
 // Current does not compile on Windows but does on Linux
 //Array SteamServer::sendMessages(Array messages, uint32 connection_handle, int flags) {
 // 	Array result;
-// 	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, result, "[STEAM SERVER] Networking Sockets class not found when calling: sendMessages");
+// 	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, result, "[STEAM SERVER] Networking Sockets class not found when calling: sendMessages");
 
 // 	int total_messages = messages.size();
 // 	SteamNetworkingMessage_t *messages_payload[total_messages];
@@ -1560,7 +1561,7 @@ Dictionary SteamServer::sendMessageToConnection(uint32 connection_handle, const 
 // 	}
 
 // 	int64 *message_num_or_result = new int64[messages.size()];
-// 	SteamNetworkingSockets()->SendMessages(total_messages, messages_payload, message_num_or_result);
+// 	SteamGameServerNetworkingSockets()->SendMessages(total_messages, messages_payload, message_num_or_result);
 
 // 	for (int i = 0; i < messages.size(); i++ ) {
 // 		result.append( (int)message_num_or_result[i] );
@@ -1572,17 +1573,17 @@ Dictionary SteamServer::sendMessageToConnection(uint32 connection_handle, const 
 
 // Flush any messages waiting on the Nagle timer and send them at the next transmission opportunity (often that means right now).
 int SteamServer::flushMessagesOnConnection(uint32 connection_handle) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: flushMessagesOnConnection");
-	return SteamNetworkingSockets()->FlushMessagesOnConnection((HSteamNetConnection)connection_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: flushMessagesOnConnection");
+	return SteamGameServerNetworkingSockets()->FlushMessagesOnConnection((HSteamNetConnection)connection_handle);
 }
 
 // Fetch the next available message(s) from the connection, if any. Returns the number of messages returned into your array, up
 // to nMaxMessages. If the connection handle is invalid, -1 is returned. If no data is available, 0, is returned.
 Array SteamServer::receiveMessagesOnConnection(uint32 connection_handle, int max_messages) {
 	Array messages;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, messages, "[STEAM SERVER] Networking Sockets class not found when calling: receiveMessagesOnConnection");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, messages, "[STEAM SERVER] Networking Sockets class not found when calling: receiveMessagesOnConnection");
 	SteamNetworkingMessage_t **connection_messages = new SteamNetworkingMessage_t *[max_messages];
-	int available_messages = SteamNetworkingSockets()->ReceiveMessagesOnConnection((HSteamNetConnection)connection_handle, connection_messages, max_messages);
+	int available_messages = SteamGameServerNetworkingSockets()->ReceiveMessagesOnConnection((HSteamNetConnection)connection_handle, connection_messages, max_messages);
 
 	for (int i = 0; i < available_messages; i++) {
 		Dictionary message;
@@ -1615,30 +1616,30 @@ Array SteamServer::receiveMessagesOnConnection(uint32 connection_handle, int max
 
 // Create a new poll group.
 uint32 SteamServer::createPollGroup() {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createPollGroup");
-	return SteamNetworkingSockets()->CreatePollGroup();
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createPollGroup");
+	return SteamGameServerNetworkingSockets()->CreatePollGroup();
 }
 
 // Destroy a poll group created with CreatePollGroup.
 bool SteamServer::destroyPollGroup(uint32 poll_group) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: destroyPollGroup");
-	return SteamNetworkingSockets()->DestroyPollGroup((HSteamNetPollGroup)poll_group);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: destroyPollGroup");
+	return SteamGameServerNetworkingSockets()->DestroyPollGroup((HSteamNetPollGroup)poll_group);
 }
 
 // Assign a connection to a poll group. Note that a connection may only belong to a single poll group. Adding a connection to a
 // poll group implicitly removes it from any other poll group it is in.
 bool SteamServer::setConnectionPollGroup(uint32 connection_handle, uint32 poll_group) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: setConnectionPollGroup");
-	return SteamNetworkingSockets()->SetConnectionPollGroup((HSteamNetConnection)connection_handle, (HSteamNetPollGroup)poll_group);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: setConnectionPollGroup");
+	return SteamGameServerNetworkingSockets()->SetConnectionPollGroup((HSteamNetConnection)connection_handle, (HSteamNetPollGroup)poll_group);
 }
 
 // Same as ReceiveMessagesOnConnection, but will return the next messages available on any connection in the poll group. Examine
 // SteamNetworkingMessage_t::m_conn to know which connection. (SteamNetworkingMessage_t::m_nConnUserData might also be useful.)
 Array SteamServer::receiveMessagesOnPollGroup(uint32 poll_group, int max_messages) {
 	Array messages;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, messages, "[STEAM SERVER] Networking Sockets class not found when calling: receiveMessagesOnPollGroup");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, messages, "[STEAM SERVER] Networking Sockets class not found when calling: receiveMessagesOnPollGroup");
 	SteamNetworkingMessage_t** poll_messages = new SteamNetworkingMessage_t *[max_messages];
-	int available_messages = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup((HSteamNetPollGroup)poll_group, poll_messages, max_messages);
+	int available_messages = SteamGameServerNetworkingSockets()->ReceiveMessagesOnPollGroup((HSteamNetPollGroup)poll_group, poll_messages, max_messages);
 		
 	for(int i = 0; i < available_messages; i++) {
 		Dictionary message;
@@ -1673,9 +1674,9 @@ Array SteamServer::receiveMessagesOnPollGroup(uint32 poll_group, int max_message
 // Returns basic information about the high-level state of the connection. Returns false if the connection handle is invalid.
 Dictionary SteamServer::getConnectionInfo(uint32 connection_handle) {
 	Dictionary connection_info;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, connection_info, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionInfo");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, connection_info, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionInfo");
 	SteamNetConnectionInfo_t info;
-	if (SteamNetworkingSockets()->GetConnectionInfo((HSteamNetConnection)connection_handle, &info)) {
+	if (SteamGameServerNetworkingSockets()->GetConnectionInfo((HSteamNetConnection)connection_handle, &info)) {
 		connection_info["identity"] = getSteamIDFromIdentity(info.m_identityRemote);
 		connection_info["user_data"] = (uint64_t)info.m_nUserData;
 		connection_info["listen_socket"] = info.m_hListenSocket;
@@ -1695,9 +1696,9 @@ Dictionary SteamServer::getConnectionInfo(uint32 connection_handle) {
 // information is subject to change.
 Dictionary SteamServer::getDetailedConnectionStatus(uint32 connection) {
 	Dictionary connection_status;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, connection_status, "[STEAM SERVER] Networking Sockets class not found when calling: getDetailedConnectionStatus");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, connection_status, "[STEAM SERVER] Networking Sockets class not found when calling: getDetailedConnectionStatus");
 	char buffer[STEAM_LARGE_BUFFER_SIZE];
-	int success = SteamNetworkingSockets()->GetDetailedConnectionStatus((HSteamNetConnection)connection, buffer, STEAM_LARGE_BUFFER_SIZE);
+	int success = SteamGameServerNetworkingSockets()->GetDetailedConnectionStatus((HSteamNetConnection)connection, buffer, STEAM_LARGE_BUFFER_SIZE);
 
 	connection_status["success"] = success;
 	connection_status["status"] = buffer;
@@ -1706,22 +1707,22 @@ Dictionary SteamServer::getDetailedConnectionStatus(uint32 connection) {
 
 // Fetch connection user data. Returns -1 if handle is invalid or if you haven't set any userdata on the connection.
 uint64_t SteamServer::getConnectionUserData(uint32 peer) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionUserData");
-	return SteamNetworkingSockets()->GetConnectionUserData((HSteamNetConnection)peer);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionUserData");
+	return SteamGameServerNetworkingSockets()->GetConnectionUserData((HSteamNetConnection)peer);
 }
 
 // Set a name for the connection, used mostly for debugging
 void SteamServer::setConnectionName(uint32 peer, const String &name) {
-	ERR_FAIL_COND_MSG(SteamNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: setConnectionName");
-	SteamNetworkingSockets()->SetConnectionName((HSteamNetConnection)peer, name.utf8().get_data());
+	ERR_FAIL_COND_MSG(SteamGameServerNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: setConnectionName");
+	SteamGameServerNetworkingSockets()->SetConnectionName((HSteamNetConnection)peer, name.utf8().get_data());
 }
 
 // Fetch connection name into your buffer, which is at least nMaxLen bytes. Returns false if handle is invalid.
 String SteamServer::getConnectionName(uint32 peer) {
 	String connection_name = "";
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, connection_name, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionName");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, connection_name, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionName");
 	char name[STEAM_BUFFER_SIZE];
-	if (SteamNetworkingSockets()->GetConnectionName((HSteamNetConnection)peer, name, STEAM_BUFFER_SIZE)) {
+	if (SteamGameServerNetworkingSockets()->GetConnectionName((HSteamNetConnection)peer, name, STEAM_BUFFER_SIZE)) {
 		connection_name += name;
 	}
 	return connection_name;
@@ -1730,9 +1731,9 @@ String SteamServer::getConnectionName(uint32 peer) {
 // Returns local IP and port that a listen socket created using CreateListenSocketIP is bound to.
 String SteamServer::getListenSocketAddress(uint32 socket, bool with_port) {
 	String socket_address = "";
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, socket_address, "[STEAM SERVER] Networking Sockets class not found when calling: getListenSocketAddress");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, socket_address, "[STEAM SERVER] Networking Sockets class not found when calling: getListenSocketAddress");
 	SteamNetworkingIPAddr address;
-	if (SteamNetworkingSockets()->GetListenSocketAddress((HSteamListenSocket)socket, &address)) {
+	if (SteamGameServerNetworkingSockets()->GetListenSocketAddress((HSteamListenSocket)socket, &address)) {
 		socket_address = getStringFromSteamIP(address);
 	}
 	return socket_address;
@@ -1742,27 +1743,27 @@ String SteamServer::getListenSocketAddress(uint32 socket, bool with_port) {
 // taken to obtain the necessary certificates. (This includes a certificate for us, as well as any CA certificates needed to
 // authenticate peers.)
 NetworkingAvailability SteamServer::initAuthentication() {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, NETWORKING_AVAILABILITY_UNKNOWN, "[STEAM SERVER] Networking Sockets class not found when calling: initAuthentication");
-	return NetworkingAvailability(SteamNetworkingSockets()->InitAuthentication());
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, NETWORKING_AVAILABILITY_UNKNOWN, "[STEAM SERVER] Networking Sockets class not found when calling: initAuthentication");
+	return NetworkingAvailability(SteamGameServerNetworkingSockets()->InitAuthentication());
 }
 
 // Query our readiness to participate in authenticated communications. A SteamNetAuthenticationStatus_t callback is posted any
 
 // time this status changes, but you can use this function to query it at any time.
 NetworkingAvailability SteamServer::getAuthenticationStatus() {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, NETWORKING_AVAILABILITY_UNKNOWN, "[STEAM SERVER] Networking Sockets class not found when calling: getAuthenticationStatus");
-	return NetworkingAvailability(SteamNetworkingSockets()->GetAuthenticationStatus(NULL));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, NETWORKING_AVAILABILITY_UNKNOWN, "[STEAM SERVER] Networking Sockets class not found when calling: getAuthenticationStatus");
+	return NetworkingAvailability(SteamGameServerNetworkingSockets()->GetAuthenticationStatus(NULL));
 }
 
 // Call this when you receive a ticket from your backend / matchmaking system. Puts the ticket into a persistent cache, and
 // optionally returns the parsed ticket.
 // Dictionary SteamServer::receivedRelayAuthTicket() {
 // 	Dictionary ticket;
-// 	if (SteamNetworkingSockets() != NULL) {
+// 	if (SteamGameServerNetworkingSockets() != NULL) {
 // 		SteamDatagramRelayAuthTicket parsed_ticket;
 // 		PackedByteArray incoming_ticket;
 // 		incoming_ticket.resize(512);
-// 		if (SteamNetworkingSockets()->ReceivedRelayAuthTicket(incoming_ticket.ptrw(), 512, &parsed_ticket)) {
+// 		if (SteamGameServerNetworkingSockets()->ReceivedRelayAuthTicket(incoming_ticket.ptrw(), 512, &parsed_ticket)) {
 // 			ticket["game_server"] = getSteamIDFromIdentity(parsed_ticket.m_identityGameserver);
 // 			ticket["authorized_client"] = getSteamIDFromIdentity(parsed_ticket.m_identityAuthorizedClient);
 // 			ticket["public_ip"] = getStringFromIP(parsed_ticket.m_unPublicIP);		// uint32
@@ -1781,8 +1782,8 @@ NetworkingAvailability SteamServer::getAuthenticationStatus() {
 // the ticket expires, and optionally the complete cracked ticket. Returns 0 if we don't have a ticket.
 //int SteamServer::findRelayAuthTicketForServer(int port) {
 //	int expires_in_seconds = 0;
-//	if (SteamNetworkingSockets() != NULL) {
-//		expires_in_seconds = SteamNetworkingSockets()->FindRelayAuthTicketForServer(game_server, port, &relay_auth_ticket);
+//	if (SteamGameServerNetworkingSockets() != NULL) {
+//		expires_in_seconds = SteamGameServerNetworkingSockets()->FindRelayAuthTicketForServer(game_server, port, &relay_auth_ticket);
 //	}
 //	return expires_in_seconds;
 //}
@@ -1790,23 +1791,23 @@ NetworkingAvailability SteamServer::getAuthenticationStatus() {
 // Returns the value of the SDR_LISTEN_PORT environment variable. This is the UDP server your server will be listening on. This
 // will configured automatically for you in production environments.
 int SteamServer::getHostedDedicatedServerPort() {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getHostedDedicatedServerPort");
-	return SteamNetworkingSockets()->GetHostedDedicatedServerPort();
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getHostedDedicatedServerPort");
+	return SteamGameServerNetworkingSockets()->GetHostedDedicatedServerPort();
 }
 
 // Returns 0 if SDR_LISTEN_PORT is not set. Otherwise, returns the data center the server is running in. This will be
 // k_SteamDatagramPOPID_dev in non-production environment.
 uint32 SteamServer::getHostedDedicatedServerPOPId() {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getHostedDedicatedServerPOPId");
-	return SteamNetworkingSockets()->GetHostedDedicatedServerPOPID();
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: getHostedDedicatedServerPOPId");
+	return SteamGameServerNetworkingSockets()->GetHostedDedicatedServerPOPID();
 }
 
 // Return info about the hosted server. This contains the PoPID of the server, and opaque routing information that can be used by
 // the relays to send traffic to your server.
 //int SteamServer::getHostedDedicatedServerAddress() {
 //	int result = 2;
-//	if (SteamNetworkingSockets() != NULL) {
-//		result = SteamNetworkingSockets()->GetHostedDedicatedServerAddress(&hosted_address);
+//	if (SteamGameServerNetworkingSockets() != NULL) {
+//		result = SteamGameServerNetworkingSockets()->GetHostedDedicatedServerAddress(&hosted_address);
 //	}
 //	return result;
 //}
@@ -1814,7 +1815,7 @@ uint32 SteamServer::getHostedDedicatedServerPOPId() {
 // Create a listen socket on the specified virtual port. The physical UDP port to use will be determined by the SDR_LISTEN_PORT
 // environment variable. If a UDP port is not configured, this call will fail.
 uint32 SteamServer::createHostedDedicatedServerListenSocket(int port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createHostedDedicatedServerListenSocket");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createHostedDedicatedServerListenSocket");
 	uint32 listen_socket = SteamGameServerNetworkingSockets()->CreateHostedDedicatedServerListenSocket(port, config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
@@ -1823,13 +1824,13 @@ uint32 SteamServer::createHostedDedicatedServerListenSocket(int port, Dictionary
 // (See steamdatagram_gamecoordinator.h)
 //int SteamServer::getGameCoordinatorServerLogin(const String& app_data) {
 //	int result = 2;
-//	if (SteamNetworkingSockets() != NULL) {
+//	if (SteamGameServerNetworkingSockets() != NULL) {
 //		SteamDatagramGameCoordinatorServerLogin *server_login = new SteamDatagramGameCoordinatorServerLogin;
 //		server_login->m_cbAppData = app_data.size();
 //		strcpy(server_login->m_appData, app_data.utf8().get_data());
 //		int signed_blob = k_cbMaxSteamDatagramGameCoordinatorServerLoginSerialized;
 //		routing_blob.resize(signed_blob);
-//		result = SteamNetworkingSockets()->GetGameCoordinatorServerLogin(server_login, &signed_blob, routing_blob.ptrw());
+//		result = SteamGameServerNetworkingSockets()->GetGameCoordinatorServerLogin(server_login, &signed_blob, routing_blob.ptrw());
 //		delete server_login;
 //	}
 //	return result;
@@ -1839,10 +1840,10 @@ uint32 SteamServer::createHostedDedicatedServerListenSocket(int port, Dictionary
 Dictionary SteamServer::getConnectionRealTimeStatus(uint32 connection, int lanes, bool get_status) {
 	// Create the dictionary for returning
 	Dictionary real_time_status;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, real_time_status, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionRealTimeStatus");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, real_time_status, "[STEAM SERVER] Networking Sockets class not found when calling: getConnectionRealTimeStatus");
 	SteamNetConnectionRealTimeStatus_t this_status;
 	SteamNetConnectionRealTimeLaneStatus_t *lanes_array = new SteamNetConnectionRealTimeLaneStatus_t[lanes];
-	int result = SteamNetworkingSockets()->GetConnectionRealTimeStatus((HSteamNetConnection)connection, &this_status, lanes, lanes_array);
+	int result = SteamGameServerNetworkingSockets()->GetConnectionRealTimeStatus((HSteamNetConnection)connection, &this_status, lanes, lanes_array);
 	
 	real_time_status["response"] = result;
 	if (result == RESULT_OK) {
@@ -1885,7 +1886,7 @@ Dictionary SteamServer::getConnectionRealTimeStatus(uint32 connection, int lanes
 // order.
 // Each lane has its own message number sequence.  The first message sent on each lane will be assigned the number 1.
 int SteamServer::configureConnectionLanes(uint32 connection, int lanes, Array priorities, Array weights) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: configureConnectionLanes");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: configureConnectionLanes");
 	int *lane_priorities = new int[lanes];
 	for (uint32 i = 0; i < lanes; i++) {
 		lane_priorities[i] = priorities[i];
@@ -1895,7 +1896,7 @@ int SteamServer::configureConnectionLanes(uint32 connection, int lanes, Array pr
 	for (uint32 i = 0; i < lanes; i++) {
 		lane_weights[i] = weights[i];
 	}
-	int result = SteamNetworkingSockets()->ConfigureConnectionLanes((HSteamNetConnection)connection, lanes, lane_priorities, lane_weights);
+	int result = SteamGameServerNetworkingSockets()->ConfigureConnectionLanes((HSteamNetConnection)connection, lanes, lane_priorities, lane_weights);
 	delete[] lane_priorities;
 	delete[] lane_weights;
 	return result;
@@ -1905,12 +1906,12 @@ int SteamServer::configureConnectionLanes(uint32 connection, int lanes, Array pr
 // these advanced functions.
 Dictionary SteamServer::getCertificateRequest() {
 	Dictionary cert_information;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, cert_information, "[STEAM SERVER] Networking Sockets class not found when calling: getCertificateRequest");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, cert_information, "[STEAM SERVER] Networking Sockets class not found when calling: getCertificateRequest");
 	PackedByteArray certificate;
 	certificate.resize(512);
 	int cert_size = certificate.size();
 	SteamNetworkingErrMsg error_message;
-	if (SteamNetworkingSockets()->GetCertificateRequest(&cert_size, certificate.ptrw(), error_message)) {
+	if (SteamGameServerNetworkingSockets()->GetCertificateRequest(&cert_size, certificate.ptrw(), error_message)) {
 		certificate.resize(cert_size);
 		cert_information["certificate"] = certificate;
 		cert_information["error_message"] = error_message;
@@ -1921,11 +1922,11 @@ Dictionary SteamServer::getCertificateRequest() {
 // Set the certificate. The certificate blob should be the output of SteamDatagram_CreateCert.
 Dictionary SteamServer::setCertificate(const PackedByteArray &certificate) {
 	Dictionary certificate_data;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, certificate_data, "[STEAM SERVER] Networking Sockets class not found when calling: setCertificate");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, certificate_data, "[STEAM SERVER] Networking Sockets class not found when calling: setCertificate");
 	bool success = false;
 	SteamNetworkingErrMsg error_message;
 
-	success = SteamNetworkingSockets()->SetCertificate((void *)certificate.ptr(), certificate.size(), error_message);
+	success = SteamGameServerNetworkingSockets()->SetCertificate((void *)certificate.ptr(), certificate.size(), error_message);
 	if (success) {
 		certificate_data["response"] = success;
 		certificate_data["error"] = error_message;
@@ -1939,17 +1940,17 @@ Dictionary SteamServer::setCertificate(const PackedByteArray &certificate) {
 // NOTE: This function is not actually supported on Steam!  It is included for use on other platforms where the active user can
 // sign out and a new user can sign in.
 void SteamServer::resetIdentity(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_MSG(SteamNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: resetIdentity");
+	ERR_FAIL_COND_MSG(SteamGameServerNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: resetIdentity");
 	SteamNetworkingIdentity resetting_identity = getIdentityFromSteamID(remote_steam_id);
-	SteamNetworkingSockets()->ResetIdentity(&resetting_identity);
+	SteamGameServerNetworkingSockets()->ResetIdentity(&resetting_identity);
 }
 
 // Invoke all callback functions queued for this interface. See k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged, etc.
 // You don't need to call this if you are using Steam's callback dispatch mechanism (SteamAPI_RunCallbacks and
 // SteamGameserver_RunCallbacks).
 void SteamServer::runNetworkingCallbacks() {
-	ERR_FAIL_COND_MSG(SteamNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: runNetworkingCallbacks");
-	SteamNetworkingSockets()->RunCallbacks();
+	ERR_FAIL_COND_MSG(SteamGameServerNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: runNetworkingCallbacks");
+	SteamGameServerNetworkingSockets()->RunCallbacks();
 }
 
 // Begin asynchronous process of allocating a fake IPv4 address that other peers can use to contact us via P2P.
@@ -1957,17 +1958,17 @@ void SteamServer::runNetworkingCallbacks() {
 // Returns false if a request was already in progress, true if a new request was started.
 // A SteamNetworkingFakeIPResult_t will be posted when the request completes.
 bool SteamServer::beginAsyncRequestFakeIP(int num_ports) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: beginAsyncRequestFakeIP");
-	return SteamNetworkingSockets()->BeginAsyncRequestFakeIP(num_ports);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, false, "[STEAM SERVER] Networking Sockets class not found when calling: beginAsyncRequestFakeIP");
+	return SteamGameServerNetworkingSockets()->BeginAsyncRequestFakeIP(num_ports);
 }
 
 // Return info about the FakeIP and port(s) that we have been assigned, if any.
 // idxFirstPort is currently reserved and must be zero. Make sure and check SteamNetworkingFakeIPResult_t::m_eResult
 Dictionary SteamServer::getFakeIP(int first_port) {
 	Dictionary fake_ip;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, fake_ip, "[STEAM SERVER] Networking Sockets class not found when calling: getFakeIP");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, fake_ip, "[STEAM SERVER] Networking Sockets class not found when calling: getFakeIP");
 	SteamNetworkingFakeIPResult_t fake_ip_result;
-	SteamNetworkingSockets()->GetFakeIP(first_port, &fake_ip_result);
+	SteamGameServerNetworkingSockets()->GetFakeIP(first_port, &fake_ip_result);
 	
 	fake_ip["result"] = fake_ip_result.m_eResult;
 	fake_ip["identity_type"] = fake_ip_result.m_identity.m_eType;
@@ -1985,8 +1986,8 @@ Dictionary SteamServer::getFakeIP(int first_port) {
 // Create a listen socket that will listen for P2P connections sent to our FakeIP.
 // A peer can initiate connections to this listen socket by calling ConnectByIPAddress.
 uint32 SteamServer::createListenSocketP2PFakeIP(int fake_port, Dictionary config_options) {
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketP2PFakeIP");
-	uint32 listen_socket = SteamNetworkingSockets()->CreateListenSocketP2PFakeIP(fake_port, config_options.size(), convert_config_options(config_options));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, 0, "[STEAM SERVER] Networking Sockets class not found when calling: createListenSocketP2PFakeIP");
+	uint32 listen_socket = SteamGameServerNetworkingSockets()->CreateListenSocketP2PFakeIP(fake_port, config_options.size(), convert_config_options(config_options));
 	return listen_socket;
 }
 
@@ -1995,9 +1996,9 @@ uint32 SteamServer::createListenSocketP2PFakeIP(int fake_port, Dictionary config
 // Otherwise, a FakeIP that is unique locally will be allocated from the local FakeIP address space, and that will be returned.
 Dictionary SteamServer::getRemoteFakeIPForConnection(uint32 connection) {
 	Dictionary this_fake_address;
-	ERR_FAIL_COND_V_MSG(SteamNetworkingSockets() == NULL, this_fake_address, "[STEAM SERVER] Networking Sockets class not found when calling: getRemoteFakeIPForConnection");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingSockets() == NULL, this_fake_address, "[STEAM SERVER] Networking Sockets class not found when calling: getRemoteFakeIPForConnection");
 	SteamNetworkingIPAddr fake_address;
-	int result = SteamNetworkingSockets()->GetRemoteFakeIPForConnection((HSteamNetConnection)connection, &fake_address);
+	int result = SteamGameServerNetworkingSockets()->GetRemoteFakeIPForConnection((HSteamNetConnection)connection, &fake_address);
 	
 	this_fake_address["result"] = result;
 	this_fake_address["ip_address"] = getStringFromSteamIP(fake_address);
@@ -2010,8 +2011,8 @@ Dictionary SteamServer::getRemoteFakeIPForConnection(uint32 connection) {
 // This is intended to make it easy to port existing UDP-based code to take advantage of SDR.
 // To create a "client" port (e.g. the equivalent of an ephemeral UDP port) pass -1.
 void SteamServer::createFakeUDPPort(int fake_server_port_index) {
-	ERR_FAIL_COND_MSG(SteamNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: createFakeUDPPort");
-	SteamNetworkingSockets()->CreateFakeUDPPort(fake_server_port_index);
+	ERR_FAIL_COND_MSG(SteamGameServerNetworkingSockets() == NULL, "[STEAM SERVER] Networking Sockets class not found when calling: createFakeUDPPort");
+	SteamGameServerNetworkingSockets()->CreateFakeUDPPort(fake_server_port_index);
 }
 
 
@@ -3150,6 +3151,14 @@ void SteamServer::player_compat(ComputeNewPlayerCompatibilityResult_t *player_da
 	emit_signal("player_compat", result, players_dont_like_candidate, players_candidate_doesnt_like, clan_players_dont_like_candidate, steam_id);
 }
 
+// Sent as a reply to BeginAuthSession().
+void SteamServer::validate_auth_ticket_response(ValidateAuthTicketResponse_t *auth_response) {
+	uint64_t steam_id = auth_response->m_SteamID.ConvertToUint64();
+	AuthSessionResponse response = (AuthSessionResponse)auth_response->m_eAuthSessionResponse;
+	uint64_t owner_id = auth_response->m_OwnerSteamID.ConvertToUint64();
+	emit_signal("validate_auth_ticket_response", steam_id, response, owner_id);
+}
+
 ///// GAME SERVER STATS
 
 // Result of a request to store the user stats.
@@ -3981,6 +3990,7 @@ void SteamServer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("client_kick", PropertyInfo(Variant::INT, "steam_id"), PropertyInfo(Variant::INT, "reason")));
 	ADD_SIGNAL(MethodInfo("policy_response", PropertyInfo(Variant::INT, "secure")));
 	ADD_SIGNAL(MethodInfo("player_compat", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "players_dont_like_candidate"), PropertyInfo(Variant::INT, "players_candidate_doesnt_like"), PropertyInfo(Variant::INT, "clan_players_dont_like_candidate"), PropertyInfo(Variant::INT, "steam_id")));
+	ADD_SIGNAL(MethodInfo("validate_auth_ticket_response", PropertyInfo(Variant::INT, "steam_id"), PropertyInfo(Variant::INT, "response"), PropertyInfo(Variant::INT, "owner_id")));
 	ADD_SIGNAL(MethodInfo("server_connect_failure", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::BOOL, "retrying")));
 	ADD_SIGNAL(MethodInfo("server_connected"));
 	ADD_SIGNAL(MethodInfo("server_disconnected", PropertyInfo(Variant::INT, "result")));

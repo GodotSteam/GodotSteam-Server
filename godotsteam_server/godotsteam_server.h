@@ -409,6 +409,7 @@ private:
 	STEAM_GAMESERVER_CALLBACK(SteamServer, client_group_status, GSClientGroupStatus_t, callbackClientGroupStatus);
 	STEAM_GAMESERVER_CALLBACK(SteamServer, associate_clan, AssociateWithClanResult_t, callbackAssociateClan);
 	STEAM_GAMESERVER_CALLBACK(SteamServer, player_compat, ComputeNewPlayerCompatibilityResult_t, callbackPlayerCompat);
+	STEAM_GAMESERVER_CALLBACK(SteamServer, validate_auth_ticket_response, ValidateAuthTicketResponse_t, callbackValidateAuthTicketResponse);
 
 	// Game Server Stats
 	STEAM_GAMESERVER_CALLBACK(SteamServer, stats_stored, GSStatsStored_t, callbackStatsStored);
