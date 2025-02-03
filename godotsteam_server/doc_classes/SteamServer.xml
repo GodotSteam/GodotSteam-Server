@@ -3125,6 +3125,14 @@
 				Sent as a reply to [method SteamServer.computeNewPlayerCompatibility].
 			</description>
 		</signal>
+		<signal name="validate_auth_ticket_response">
+			<param index="0" name="steam_id" type="int" />
+			<param index="1" name="response" type="int" />
+			<param index="2" name="owner_id" type="int" />
+			<description>
+				Sent as a reply to [method SteamServer.beginAuthSession].
+			</description>
+		</signal>
 		<signal name="policy_response">
 			<param index="0" name="secure" type="int" />
 			<description>
