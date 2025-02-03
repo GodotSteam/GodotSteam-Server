@@ -27,8 +27,8 @@ You can [download pre-compiled versions of this repo here](https://github.com/Go
 **Version 4.5 Changes**
 - Added: missing Utils class: functions, enums, constants
 - Changed: minor clean-ups
-- Fixed: wrong accessor for Networking Sockets, thanks to ***Michael Janesway***
-- Fixed: missing callback fro `validate_auth_ticket_response`, thanks to ***Michael Janesway***
+- Fixed: wrong accessor for Networking Sockets, thanks to ***Michael Janeway***
+- Fixed: missing callback fro `validate_auth_ticket_response`, thanks to ***Michael Janeway***
 - Fixed: all wronge accessors for all other class functions
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server4/).

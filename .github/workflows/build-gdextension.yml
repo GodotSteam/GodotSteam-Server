@@ -209,7 +209,7 @@ jobs:
           cp -n 'godotsteam_server.gdextension' project/addons/godotsteam_server
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gdextension
           path: |
