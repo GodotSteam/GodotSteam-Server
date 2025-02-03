@@ -70,7 +70,17 @@ SteamServer::SteamServer():
 	// UGC
 	callbackItemDownloaded(this, &SteamServer::item_downloaded),
 	callbackItemInstalled(this, &SteamServer::item_installed),
-	callbackUserSubscribedItemsListChanged(this, &SteamServer::user_subscribed_items_list_changed)
+	callbackUserSubscribedItemsListChanged(this, &SteamServer::user_subscribed_items_list_changed),
+
+	// Utility
+	callbackGamepadTextInputDismissed(this, &SteamServer::gamepad_text_input_dismissed),
+	callbackIPCountry(this, &SteamServer::ip_country),
+	callbackLowPower(this, &SteamServer::low_power),
+	callbackSteamAPICallCompleted(this, &SteamServer::steam_api_call_completed),
+	callbackSteamShutdown(this, &SteamServer::steam_shutdown),
+	callbackAppResumingFromSuspend(this, &SteamServer::app_resuming_from_suspend),
+	callbackFloatingGamepadTextInputDismissed(this, &SteamServer::floating_gamepad_text_input_dismissed),
+	callbackFilterTextDictionaryChanged(this, &SteamServer::filter_text_dictionary_changed)
 {
 	is_init_success = false;
 	singleton = this;
@@ -479,15 +489,15 @@ Dictionary SteamServer::getAuthSessionTicket(uint64_t remote_steam_id) {
 // Authenticate the ticket from the entity Steam ID to be sure it is valid and isn't reused.
 uint32 SteamServer::beginAuthSession(PackedByteArray ticket, int ticket_size, uint64_t steam_id) {
 	ERR_FAIL_COND_V_MSG(SteamGameServer() == NULL, -1, "[STEAM SERVER] Server class not found when calling: beginAuthSession");
-	CSteamID authSteamID = createSteamID(steam_id);
-	return SteamGameServer()->BeginAuthSession(ticket.ptr(), ticket_size, authSteamID);
+	CSteamID auth_steam_id = createSteamID(steam_id);
+	return SteamGameServer()->BeginAuthSession(ticket.ptr(), ticket_size, auth_steam_id);
 }
 
 // Stop tracking started by beginAuthSession; called when no longer playing game with this entity;
 void SteamServer::endAuthSession(uint64_t steam_id) {
 	ERR_FAIL_COND_MSG(SteamGameServer() == NULL, "[STEAM SERVER] Server class not found when calling: endAuthSession");
-	CSteamID authSteamID = createSteamID(steam_id);
-	SteamGameServer()->EndAuthSession(authSteamID);
+	CSteamID auth_steam_id = createSteamID(steam_id);
+	SteamGameServer()->EndAuthSession(auth_steam_id);
 }
 
 // Cancel auth ticket from getAuthSessionTicket; called when no longer playing game with the entity you gave the ticket to.
@@ -499,16 +509,16 @@ void SteamServer::cancelAuthTicket(uint32_t auth_ticket) {
 // After receiving a user's authentication data, and passing it to sendUserConnectAndAuthenticate, use to determine if user owns DLC
 int SteamServer::userHasLicenceForApp(uint64_t steam_id, uint32 app_id) {
 	ERR_FAIL_COND_V_MSG(SteamGameServer() == NULL, 0, "[STEAM SERVER] Server class not found when calling: userHasLicenceForApp");
-	CSteamID userID = (uint64)steam_id;
-	return SteamGameServer()->UserHasLicenseForApp(userID, (AppId_t)app_id);
+	CSteamID user_id = (uint64)steam_id;
+	return SteamGameServer()->UserHasLicenseForApp(user_id, (AppId_t)app_id);
 }
 
 // Ask if user is in specified group; results returned by GSUserGroupStatus_t.
 bool SteamServer::requestUserGroupStatus(uint64_t steam_id, int group_id) {
 	ERR_FAIL_COND_V_MSG(SteamGameServer() == NULL, false, "[STEAM SERVER] Server class not found when calling: requestUserGroupStatus");
-	CSteamID userID = (uint64)steam_id;
+	CSteamID user_id = (uint64)steam_id;
 	CSteamID clan_id = (uint64)group_id;
-	return SteamGameServer()->RequestUserGroupStatus(userID, clan_id);
+	return SteamGameServer()->RequestUserGroupStatus(user_id, clan_id);
 }
 
 // NOTE: These are in GameSocketShare mode, where instead of ISteamGameServer creating sockets to talk to master server, it lets the game use its socket to forward messages back and forth.
@@ -576,8 +586,8 @@ void SteamServer::associateWithClan(uint64_t clan_id) {
 // Ask if any of the current players dont want to play with this new player - or vice versa.
 void SteamServer::computeNewPlayerCompatibility(uint64_t steam_id) {
 	ERR_FAIL_COND_MSG(SteamGameServer() == NULL, "[STEAM SERVER] Server class not found when calling: computeNewPlayerCompatibility");
-	CSteamID userID = (uint64)steam_id;
-	SteamGameServer()->ComputeNewPlayerCompatibility(userID);
+	CSteamID user_id = (uint64)steam_id;
+	SteamGameServer()->ComputeNewPlayerCompatibility(user_id);
 }
 
 
@@ -586,8 +596,8 @@ void SteamServer::computeNewPlayerCompatibility(uint64_t steam_id) {
 // Resets the unlock status of an achievement for the specified user.
 bool SteamServer::clearUserAchievement(uint64_t steam_id, const String &name) {
 	ERR_FAIL_COND_V_MSG(SteamGameServerStats() == NULL, false, "[STEAM SERVER] Server Stats class not found when calling: clearUserAchievement");
-	CSteamID userID = (uint64)steam_id;
-	return SteamGameServerStats()->ClearUserAchievement(userID, name.utf8().get_data());
+	CSteamID user_id = (uint64)steam_id;
+	return SteamGameServerStats()->ClearUserAchievement(user_id, name.utf8().get_data());
 }
 
 // Gets the unlock status of the Achievement.
@@ -672,172 +682,172 @@ bool SteamServer::updateUserAvgRateStat(uint64_t steam_id, const String &name, f
 
 // Creates a cookie container to store cookies during the lifetime of the process. This API is just for during process lifetime, after steam restarts no cookies are persisted and you have no way to access the cookie container across repeat executions of your process.
 uint32_t SteamServer::createCookieContainer(bool allow_responses_to_modify) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, 0, "[STEAM SERVER] HTTP class not found when calling: createCookieContainer");
-	return SteamHTTP()->CreateCookieContainer(allow_responses_to_modify);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, 0, "[STEAM SERVER] HTTP class not found when calling: createCookieContainer");
+	return SteamGameServerHTTP()->CreateCookieContainer(allow_responses_to_modify);
 }
 
 // Initializes a new HTTP request.
 uint32_t SteamServer::createHTTPRequest(HTTPMethod request_method, const String &absolute_url) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, HTTPREQUEST_INVALID_HANDLE, "[STEAM SERVER] HTTP class not found when calling: createCookieContainer");
-	return SteamHTTP()->CreateHTTPRequest((EHTTPMethod)request_method, absolute_url.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, HTTPREQUEST_INVALID_HANDLE, "[STEAM SERVER] HTTP class not found when calling: createCookieContainer");
+	return SteamGameServerHTTP()->CreateHTTPRequest((EHTTPMethod)request_method, absolute_url.utf8().get_data());
 }
 
 // Defers a request which has already been sent by moving it at the back of the queue.
 bool SteamServer::deferHTTPRequest(uint32 request_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: deferHTTPRequest");
-	return SteamHTTP()->DeferHTTPRequest(request_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: deferHTTPRequest");
+	return SteamGameServerHTTP()->DeferHTTPRequest(request_handle);
 }
 
 // Gets progress on downloading the body for the request.
 float SteamServer::getHTTPDownloadProgressPct(uint32 request_handle) {
 	float percent_one = 0.0;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, percent_one, "[STEAM SERVER] HTTP class not found when calling: getHTTPDownloadProgressPct");
-	SteamHTTP()->GetHTTPDownloadProgressPct(request_handle, &percent_one);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, percent_one, "[STEAM SERVER] HTTP class not found when calling: getHTTPDownloadProgressPct");
+	SteamGameServerHTTP()->GetHTTPDownloadProgressPct(request_handle, &percent_one);
 	return percent_one;
 }
 
 // Check if the reason the request failed was because we timed it out (rather than some harder failure).
 bool SteamServer::getHTTPRequestWasTimedOut(uint32 request_handle) {
 	bool was_timed_out = false;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, was_timed_out, "[STEAM SERVER] HTTP class not found when calling: getHTTPRequestWasTimedOut");
-	SteamHTTP()->GetHTTPRequestWasTimedOut(request_handle, &was_timed_out);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, was_timed_out, "[STEAM SERVER] HTTP class not found when calling: getHTTPRequestWasTimedOut");
+	SteamGameServerHTTP()->GetHTTPRequestWasTimedOut(request_handle, &was_timed_out);
 	return was_timed_out;
 }
 
 // Gets the body data from an HTTP response.
 PackedByteArray SteamServer::getHTTPResponseBodyData(uint32 request_handle, uint32 buffer_size) {
 	PackedByteArray body_data;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, body_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseBodyData");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, body_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseBodyData");
 	body_data.resize(buffer_size);
-	SteamHTTP()->GetHTTPResponseBodyData(request_handle, body_data.ptrw(), buffer_size);
+	SteamGameServerHTTP()->GetHTTPResponseBodyData(request_handle, body_data.ptrw(), buffer_size);
 	return body_data;
 }
 
 // Gets the size of the body data from an HTTP response.
 uint32 SteamServer::getHTTPResponseBodySize(uint32 request_handle) {
 	uint32 body_size = 0;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, body_size, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseBodySize");
-	SteamHTTP()->GetHTTPResponseBodySize(request_handle, &body_size);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, body_size, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseBodySize");
+	SteamGameServerHTTP()->GetHTTPResponseBodySize(request_handle, &body_size);
 	return body_size;
 }
 
 // Checks if a header is present in an HTTP response and returns its size.
 uint32 SteamServer::getHTTPResponseHeaderSize(uint32 request_handle, const String &header_name) {
 	uint32 response_header_size = 0;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, response_header_size, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseHeaderSize");
-	SteamHTTP()->GetHTTPResponseHeaderSize(request_handle, header_name.utf8().get_data(), &response_header_size);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, response_header_size, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseHeaderSize");
+	SteamGameServerHTTP()->GetHTTPResponseHeaderSize(request_handle, header_name.utf8().get_data(), &response_header_size);
 	return response_header_size;
 }
 
 // Gets a header value from an HTTP response.
 PackedByteArray SteamServer::getHTTPResponseHeaderValue(uint32 request_handle, const String &header_name, uint32 buffer_size) {
 	PackedByteArray header_data;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, header_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseHeaderValue");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, header_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPResponseHeaderValue");
 	header_data.resize(buffer_size);
-	SteamHTTP()->GetHTTPResponseHeaderValue(request_handle, header_name.utf8().get_data(), header_data.ptrw(), buffer_size);
+	SteamGameServerHTTP()->GetHTTPResponseHeaderValue(request_handle, header_name.utf8().get_data(), header_data.ptrw(), buffer_size);
 	return header_data;
 }
 
 // Gets the body data from a streaming HTTP response.
 PackedByteArray SteamServer::getHTTPStreamingResponseBodyData(uint32 request_handle, uint32 offset, uint32 buffer_size) {
 	PackedByteArray body_data;
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, body_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPStreamingResponseBodyData");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, body_data, "[STEAM SERVER] HTTP class not found when calling: getHTTPStreamingResponseBodyData");
 	body_data.resize(buffer_size);
-	SteamHTTP()->GetHTTPStreamingResponseBodyData(request_handle, offset, body_data.ptrw(), buffer_size);
+	SteamGameServerHTTP()->GetHTTPStreamingResponseBodyData(request_handle, offset, body_data.ptrw(), buffer_size);
 	return body_data;
 }
 
 // Prioritizes a request which has already been sent by moving it at the front of the queue.
 bool SteamServer::prioritizeHTTPRequest(uint32 request_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: prioritizeHTTPRequest");
-	return SteamHTTP()->PrioritizeHTTPRequest(request_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: prioritizeHTTPRequest");
+	return SteamGameServerHTTP()->PrioritizeHTTPRequest(request_handle);
 }
 
 // Releases a cookie container, freeing the memory allocated within Steam.
 bool SteamServer::releaseCookieContainer(uint32 cookie_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: releaseCookieContainer");
-	return SteamHTTP()->ReleaseCookieContainer(cookie_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: releaseCookieContainer");
+	return SteamGameServerHTTP()->ReleaseCookieContainer(cookie_handle);
 }
 
 // Releases an HTTP request handle, freeing the memory allocated within Steam.
 bool SteamServer::releaseHTTPRequest(uint32 request_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: releaseHTTPRequest");
-	return SteamHTTP()->ReleaseHTTPRequest(request_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: releaseHTTPRequest");
+	return SteamGameServerHTTP()->ReleaseHTTPRequest(request_handle);
 }
 
 // Sends an HTTP request.
 bool SteamServer::sendHTTPRequest(uint32 request_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: sendHTTPRequest");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: sendHTTPRequest");
 	SteamAPICall_t call_handle;
-	return SteamHTTP()->SendHTTPRequest(request_handle, &call_handle);
+	return SteamGameServerHTTP()->SendHTTPRequest(request_handle, &call_handle);
 }
 
 // Sends an HTTP request and streams the response back in chunks.
 bool SteamServer::sendHTTPRequestAndStreamResponse(uint32 request_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: sendHTTPRequestAndStreamResponse");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: sendHTTPRequestAndStreamResponse");
 	SteamAPICall_t call_handle;
-	return SteamHTTP()->SendHTTPRequestAndStreamResponse(request_handle, &call_handle);
+	return SteamGameServerHTTP()->SendHTTPRequestAndStreamResponse(request_handle, &call_handle);
 }
 
 // Adds a cookie to the specified cookie container that will be used with future requests.
 bool SteamServer::setHTTPCookie(uint32 cookie_handle, const String &host, const String &url, const String &cookie) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPCookie");
-	return SteamHTTP()->SetCookie(cookie_handle, host.utf8().get_data(), url.utf8().get_data(), cookie.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPCookie");
+	return SteamGameServerHTTP()->SetCookie(cookie_handle, host.utf8().get_data(), url.utf8().get_data(), cookie.utf8().get_data());
 }
 
 // Set an absolute timeout in milliseconds for the HTTP request. This is the total time timeout which is different than the network activity timeout which is set with SetHTTPRequestNetworkActivityTimeout which can bump everytime we get more data.
 bool SteamServer::setHTTPRequestAbsoluteTimeoutMS(uint32 request_handle, uint32 milliseconds) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestAbsoluteTimeoutMS");
-	return SteamHTTP()->SetHTTPRequestAbsoluteTimeoutMS(request_handle, milliseconds);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestAbsoluteTimeoutMS");
+	return SteamGameServerHTTP()->SetHTTPRequestAbsoluteTimeoutMS(request_handle, milliseconds);
 }
 
 // Set a context value for the request, which will be returned in the HTTPRequestCompleted_t callback after sending the request. This is just so the caller can easily keep track of which callbacks go with which request data. Must be called before sending the request.
 bool SteamServer::setHTTPRequestContextValue(uint32 request_handle, uint64_t context_value) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestContextValue");
-	return SteamHTTP()->SetHTTPRequestContextValue(request_handle, context_value);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestContextValue");
+	return SteamGameServerHTTP()->SetHTTPRequestContextValue(request_handle, context_value);
 }
 
 // Associates a cookie container to use for an HTTP request.
 bool SteamServer::setHTTPRequestCookieContainer(uint32 request_handle, uint32 cookie_handle) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestCookieContainer");
-	return SteamHTTP()->SetHTTPRequestCookieContainer(request_handle, cookie_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestCookieContainer");
+	return SteamGameServerHTTP()->SetHTTPRequestCookieContainer(request_handle, cookie_handle);
 }
 
 // Set a GET or POST parameter value on the HTTP request. Must be called prior to sending the request.
 bool SteamServer::setHTTPRequestGetOrPostParameter(uint32 request_handle, const String &name, const String &value) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestGetOrPostParameter");
-	return SteamHTTP()->SetHTTPRequestGetOrPostParameter(request_handle, name.utf8().get_data(), value.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestGetOrPostParameter");
+	return SteamGameServerHTTP()->SetHTTPRequestGetOrPostParameter(request_handle, name.utf8().get_data(), value.utf8().get_data());
 }
 
 // Set a request header value for the HTTP request. Must be called before sending the request.
 bool SteamServer::setHTTPRequestHeaderValue(uint32 request_handle, const String &header_name, const String &header_value) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestHeaderValue");
-	return SteamHTTP()->SetHTTPRequestHeaderValue(request_handle, header_name.utf8().get_data(), header_value.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestHeaderValue");
+	return SteamGameServerHTTP()->SetHTTPRequestHeaderValue(request_handle, header_name.utf8().get_data(), header_value.utf8().get_data());
 }
 
 // Set the timeout in seconds for the HTTP request.
 bool SteamServer::setHTTPRequestNetworkActivityTimeout(uint32 request_handle, uint32 timeout_seconds) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
-	return SteamHTTP()->SetHTTPRequestNetworkActivityTimeout(request_handle, timeout_seconds);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
+	return SteamGameServerHTTP()->SetHTTPRequestNetworkActivityTimeout(request_handle, timeout_seconds);
 }
 
 // Sets the body for an HTTP Post request.
 bool SteamServer::setHTTPRequestRawPostBody(uint32 request_handle, const String &content_type, const String &body) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestRawPostBody");
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestRawPostBody");
 	auto body_utf8 = body.utf8();
-	return SteamHTTP()->SetHTTPRequestRawPostBody(request_handle, content_type.utf8().get_data(), reinterpret_cast<uint8 *>(body_utf8.ptrw()), body_utf8.size());
+	return SteamGameServerHTTP()->SetHTTPRequestRawPostBody(request_handle, content_type.utf8().get_data(), reinterpret_cast<uint8 *>(body_utf8.ptrw()), body_utf8.size());
 }
 
 // Sets that the HTTPS request should require verified SSL certificate via machines certificate trust store. This currently only works Windows and macOS.
 bool SteamServer::setHTTPRequestRequiresVerifiedCertificate(uint32 request_handle, bool require_verified_certificate) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
-	return SteamHTTP()->SetHTTPRequestRequiresVerifiedCertificate(request_handle, require_verified_certificate);
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
+	return SteamGameServerHTTP()->SetHTTPRequestRequiresVerifiedCertificate(request_handle, require_verified_certificate);
 }
 
 // Set additional user agent info for a request.
 bool SteamServer::setHTTPRequestUserAgentInfo(uint32 request_handle, const String &user_agent_info) {
-	ERR_FAIL_COND_V_MSG(SteamHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
-	return SteamHTTP()->SetHTTPRequestUserAgentInfo(request_handle, user_agent_info.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerHTTP() == NULL, false, "[STEAM SERVER] HTTP class not found when calling: setHTTPRequestNetworkActivityTimeout");
+	return SteamGameServerHTTP()->SetHTTPRequestUserAgentInfo(request_handle, user_agent_info.utf8().get_data());
 }
 
 
@@ -849,8 +859,8 @@ bool SteamServer::setHTTPRequestUserAgentInfo(uint32 request_handle, const Strin
 // Grant a specific one-time promotional item to the current user.
 int32 SteamServer::addPromoItem(uint32 item) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: addPromoItem");
-	if (SteamInventory()->AddPromoItem(&new_inventory_handle, item)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: addPromoItem");
+	if (SteamGameServerInventory()->AddPromoItem(&new_inventory_handle, item)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -859,13 +869,13 @@ int32 SteamServer::addPromoItem(uint32 item) {
 // Grant a specific one-time promotional items to the current user.
 int32 SteamServer::addPromoItems(PackedInt64Array items) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: addPromoItems");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: addPromoItems");
 	int count = items.size();
 	SteamItemDef_t *new_items = new SteamItemDef_t[items.size()];
 	for(int i = 0; i < count; i++) {
 		new_items[i] = items[i];
 	}
-	if (SteamInventory()->AddPromoItems(&new_inventory_handle, new_items, count)) {
+	if (SteamGameServerInventory()->AddPromoItems(&new_inventory_handle, new_items, count)) {
 		inventory_handle = new_inventory_handle;
 	}
 	delete[] new_items;
@@ -874,20 +884,20 @@ int32 SteamServer::addPromoItems(PackedInt64Array items) {
 
 // Checks whether an inventory result handle belongs to the specified Steam ID.
 bool SteamServer::checkResultSteamID(uint64_t steam_id_expected, int32 this_inventory_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: checkResultSteamID");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: checkResultSteamID");
 	CSteamID steam_id = (uint64)steam_id_expected;
 	
 	if (this_inventory_handle == 0) {
 		this_inventory_handle = inventory_handle;
 	}
-	return SteamInventory()->CheckResultSteamID((SteamInventoryResult_t)this_inventory_handle, steam_id);
+	return SteamGameServerInventory()->CheckResultSteamID((SteamInventoryResult_t)this_inventory_handle, steam_id);
 }
 
 // Consumes items from a user's inventory. If the quantity of the given item goes to zero, it is permanently removed.
 int32 SteamServer::consumeItem(uint64_t item_consume, uint32 quantity) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: consumeItem");
-	if (SteamInventory()->ConsumeItem(&new_inventory_handle, (SteamItemInstanceID_t)item_consume, quantity)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: consumeItem");
+	if (SteamGameServerInventory()->ConsumeItem(&new_inventory_handle, (SteamItemInstanceID_t)item_consume, quantity)) {
 	 	inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -896,8 +906,8 @@ int32 SteamServer::consumeItem(uint64_t item_consume, uint32 quantity) {
 // Deserializes a result set and verifies the signature bytes.
 int32 SteamServer::deserializeResult(PackedByteArray buffer) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, 0, "[STEAM SERVER] Inventory class not found when calling: deserializeResult");
-	if (SteamInventory()->DeserializeResult(&new_inventory_handle, &buffer, buffer.size(), false)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, 0, "[STEAM SERVER] Inventory class not found when calling: deserializeResult");
+	if (SteamGameServerInventory()->DeserializeResult(&new_inventory_handle, &buffer, buffer.size(), false)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -905,17 +915,17 @@ int32 SteamServer::deserializeResult(PackedByteArray buffer) {
 
 // Destroys a result handle and frees all associated memory.
 void SteamServer::destroyResult(int this_inventory_handle) {
-	ERR_FAIL_COND_MSG(SteamInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: destroyResult");
+	ERR_FAIL_COND_MSG(SteamGameServerInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: destroyResult");
 	if (this_inventory_handle == 0) {
 		this_inventory_handle = inventory_handle;
 	}	
-	SteamInventory()->DestroyResult((SteamInventoryResult_t)this_inventory_handle);
+	SteamGameServerInventory()->DestroyResult((SteamInventoryResult_t)this_inventory_handle);
 }
 
 //! Grant one item in exchange for a set of other items.
 int32 SteamServer::exchangeItems(const PackedInt64Array output_items, const PackedInt32Array output_quantity, const PackedInt64Array input_items, const PackedInt32Array input_quantity) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: exchangeItems");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: exchangeItems");
 	uint32 total_output = output_items.size();
 	SteamItemDef_t *generated_items = new SteamItemDef_t[total_output];
 	for (uint32 i = 0; i < total_output; i++) {
@@ -932,7 +942,7 @@ int32 SteamServer::exchangeItems(const PackedInt64Array output_items, const Pack
 	}
 	const SteamItemInstanceID_t *these_item_ids = input_item_ids;
 
-	if (SteamInventory()->ExchangeItems(&new_inventory_handle, generated_items, quantity_out, total_output, these_item_ids, quantity_in, array_size)) {
+	if (SteamGameServerInventory()->ExchangeItems(&new_inventory_handle, generated_items, quantity_out, total_output, these_item_ids, quantity_in, array_size)) {
 		// Update the internally stored handle
 		inventory_handle = new_inventory_handle;
 	}
@@ -944,7 +954,7 @@ int32 SteamServer::exchangeItems(const PackedInt64Array output_items, const Pack
 // Grants specific items to the current user, for developers only.
 int32 SteamServer::generateItems(const PackedInt64Array items, const PackedInt32Array quantity) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: generateItems");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: generateItems");
 	uint32 total_quantity = items.size();
 	SteamItemDef_t *generated_items = new SteamItemDef_t[total_quantity];
 
@@ -953,7 +963,7 @@ int32 SteamServer::generateItems(const PackedInt64Array items, const PackedInt32
 	}
 
 	uint32_t *this_quantity = (uint32*) quantity.ptr();
-	if (SteamInventory()->GenerateItems(&new_inventory_handle, generated_items, this_quantity, items.size())) {
+	if (SteamGameServerInventory()->GenerateItems(&new_inventory_handle, generated_items, this_quantity, items.size())) {
 		inventory_handle = new_inventory_handle;
 	}
 	delete[] generated_items;
@@ -963,8 +973,8 @@ int32 SteamServer::generateItems(const PackedInt64Array items, const PackedInt32
 // Start retrieving all items in the current users inventory.
 int32 SteamServer::getAllItems() {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: getAllItems");
-	if (SteamInventory()->GetAllItems(&new_inventory_handle)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: getAllItems");
+	if (SteamGameServerInventory()->GetAllItems(&new_inventory_handle)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -972,10 +982,10 @@ int32 SteamServer::getAllItems() {
 
 // Gets a string property from the specified item definition.  Gets a property value for a specific item definition.
 String SteamServer::getItemDefinitionProperty(uint32 definition, const String &name) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, "", "[STEAM SERVER] Inventory class not found when calling: getItemDefinitionProperty");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, "", "[STEAM SERVER] Inventory class not found when calling: getItemDefinitionProperty");
 	char buffer[STEAM_BUFFER_SIZE];
 	uint32 buffer_size = std::size(buffer);
-	SteamInventory()->GetItemDefinitionProperty(definition, name.utf8().get_data(), buffer, &buffer_size);
+	SteamGameServerInventory()->GetItemDefinitionProperty(definition, name.utf8().get_data(), buffer, &buffer_size);
 	String property = String::utf8(buffer, buffer_size);
 	return property;
 }
@@ -983,10 +993,10 @@ String SteamServer::getItemDefinitionProperty(uint32 definition, const String &n
 // After a successful call to RequestPrices, you can call this method to get the pricing for a specific item definition.
 Dictionary SteamServer::getItemPrice(uint32 definition) {
 	Dictionary prices;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, prices, "[STEAM SERVER] Inventory class not found when calling: getItemPrice");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, prices, "[STEAM SERVER] Inventory class not found when calling: getItemPrice");
 	uint64 price = 0;
 	uint64 base_price = 0;
-	SteamInventory()->GetItemPrice(definition, &price, &base_price);
+	SteamGameServerInventory()->GetItemPrice(definition, &price, &base_price);
 	prices["price"] = (uint64_t)price;
 	prices["base_price"] = (uint64_t)base_price;
 	return prices;
@@ -995,7 +1005,7 @@ Dictionary SteamServer::getItemPrice(uint32 definition) {
 // Gets the state of a subset of the current user's inventory.
 int32 SteamServer::getItemsByID(const PackedInt64Array id_array) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: getItemsByID");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: getItemsByID");
 	uint32 array_size = id_array.size();
 	SteamItemInstanceID_t *item_ids = new SteamItemInstanceID_t[array_size];
 
@@ -1004,7 +1014,7 @@ int32 SteamServer::getItemsByID(const PackedInt64Array id_array) {
 	}
 	const SteamItemInstanceID_t *these_item_ids = item_ids;
 
-	if (SteamInventory()->GetItemsByID(&new_inventory_handle, these_item_ids, array_size)) {
+	if (SteamGameServerInventory()->GetItemsByID(&new_inventory_handle, these_item_ids, array_size)) {
 		inventory_handle = new_inventory_handle;
 	}
 	delete[] item_ids;
@@ -1013,14 +1023,14 @@ int32 SteamServer::getItemsByID(const PackedInt64Array id_array) {
 
 // After a successful call to RequestPrices, you can call this method to get all the pricing for applicable item definitions. Use the result of GetNumItemsWithPrices as the the size of the arrays that you pass in.
 Array SteamServer::getItemsWithPrices() {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, Array(), "[STEAM SERVER] Inventory class not found when calling: getItemsWithPrices");
-	uint32 valid_prices = SteamInventory()->GetNumItemsWithPrices();
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, Array(), "[STEAM SERVER] Inventory class not found when calling: getItemsWithPrices");
+	uint32 valid_prices = SteamGameServerInventory()->GetNumItemsWithPrices();
 	Array price_array;
 	SteamItemDef_t *ids = new SteamItemDef_t[valid_prices];
 	uint64 *prices = new uint64[valid_prices];
 	uint64 *base_prices = new uint64[valid_prices];
 
-	if (SteamInventory()->GetItemsWithPrices(ids, prices, base_prices, valid_prices)) {
+	if (SteamGameServerInventory()->GetItemsWithPrices(ids, prices, base_prices, valid_prices)) {
 		for (uint32 i = 0; i < valid_prices; i++) {
 			Dictionary price_group;
 			price_group["item"] = ids[i];
@@ -1037,7 +1047,7 @@ Array SteamServer::getItemsWithPrices() {
 
 // Gets the dynamic properties from an item in an inventory result set.
 String SteamServer::getResultItemProperty(uint32 index, const String &name, int32 this_inventory_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, "", "[STEAM SERVER] Inventory class not found when calling: getResultItemProperty");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, "", "[STEAM SERVER] Inventory class not found when calling: getResultItemProperty");
 	char value[256];
 	uint32 buffer_size = std::size(value);
 
@@ -1046,26 +1056,26 @@ String SteamServer::getResultItemProperty(uint32 index, const String &name, int3
 	}
 
 	if (name.is_empty()) {
-		SteamInventory()->GetResultItemProperty((SteamInventoryResult_t)this_inventory_handle, index, NULL, value, &buffer_size);
+		SteamGameServerInventory()->GetResultItemProperty((SteamInventoryResult_t)this_inventory_handle, index, NULL, value, &buffer_size);
 	}
 	else {
-		SteamInventory()->GetResultItemProperty((SteamInventoryResult_t)this_inventory_handle, index, name.utf8().get_data(), value, &buffer_size);
+		SteamGameServerInventory()->GetResultItemProperty((SteamInventoryResult_t)this_inventory_handle, index, name.utf8().get_data(), value, &buffer_size);
 	}
 	return String::utf8(value, buffer_size);
 }
 
 // Get the items associated with an inventory result handle.
 Array SteamServer::getResultItems(int32 this_inventory_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, Array(), "[STEAM SERVER] Inventory class not found when calling: getResultItems");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, Array(), "[STEAM SERVER] Inventory class not found when calling: getResultItems");
 	Array items;
 	uint32 size = 0;
 
-	if (SteamInventory()->GetResultItems((SteamInventoryResult_t)this_inventory_handle, NULL, &size)) {
+	if (SteamGameServerInventory()->GetResultItems((SteamInventoryResult_t)this_inventory_handle, NULL, &size)) {
 		SteamItemDetails_t *item_array = new SteamItemDetails_t[size];
 		if (this_inventory_handle == 0) {
 			this_inventory_handle = inventory_handle;
 		}
-		if (SteamInventory()->GetResultItems((SteamInventoryResult_t)this_inventory_handle, item_array, &size)) {
+		if (SteamGameServerInventory()->GetResultItems((SteamInventoryResult_t)this_inventory_handle, item_array, &size)) {
 			for (uint32 i = 0; i < size; i++) {
 				Dictionary item_info;
 				item_info["item_id"] = (uint64_t)item_array[i].m_itemId;
@@ -1082,27 +1092,27 @@ Array SteamServer::getResultItems(int32 this_inventory_handle) {
 
 // Find out the status of an asynchronous inventory result handle.
 Result SteamServer::getResultStatus(int32 this_inventory_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, RESULT_FAIL, "[STEAM SERVER] Inventory class not found when calling: getResultStatus");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, RESULT_FAIL, "[STEAM SERVER] Inventory class not found when calling: getResultStatus");
 	if (this_inventory_handle == 0) {
 		this_inventory_handle = inventory_handle;
 	}
-	return (Result)SteamInventory()->GetResultStatus((SteamInventoryResult_t)this_inventory_handle);
+	return (Result)SteamGameServerInventory()->GetResultStatus((SteamInventoryResult_t)this_inventory_handle);
 }
 
 // Gets the server time at which the result was generated.
 uint32 SteamServer::getResultTimestamp(int32 this_inventory_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, 0, "[STEAM SERVER] Inventory class not found when calling: getResultTimestamp");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, 0, "[STEAM SERVER] Inventory class not found when calling: getResultTimestamp");
 	if (this_inventory_handle == 0) {
 		this_inventory_handle = inventory_handle;
 	}
-	return SteamInventory()->GetResultTimestamp((SteamInventoryResult_t)this_inventory_handle);
+	return SteamGameServerInventory()->GetResultTimestamp((SteamInventoryResult_t)this_inventory_handle);
 }
 
 // Grant all potential one-time promotional items to the current user.
 int32 SteamServer::grantPromoItems() {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: grantPromoItems");
-	if (SteamInventory()->GrantPromoItems(&new_inventory_handle)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: grantPromoItems");
+	if (SteamGameServerInventory()->GrantPromoItems(&new_inventory_handle)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -1110,39 +1120,39 @@ int32 SteamServer::grantPromoItems() {
 
 // Triggers an asynchronous load and refresh of item definitions.
 bool SteamServer::loadItemDefinitions() {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: loadItemDefinitions");
-	return SteamInventory()->LoadItemDefinitions();
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: loadItemDefinitions");
+	return SteamGameServerInventory()->LoadItemDefinitions();
 }
 
 // Removes a dynamic property for the given item.
 bool SteamServer::removeProperty(uint64_t item_id, const String &name, uint64_t this_inventory_update_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: removeProperty");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: removeProperty");
 	// If no inventory update handle is passed, use internal one
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
-	return SteamInventory()->RemoveProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data());
+	return SteamGameServerInventory()->RemoveProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data());
 }
 
 // Request the list of "eligible" promo items that can be manually granted to the given user.
 void SteamServer::requestEligiblePromoItemDefinitionsIDs(uint64_t steam_id) {
-	ERR_FAIL_COND_MSG(SteamInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: requestEligiblePromoItemDefinitionsIDs");
+	ERR_FAIL_COND_MSG(SteamGameServerInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: requestEligiblePromoItemDefinitionsIDs");
 	CSteamID user_id = (uint64)steam_id;
-	SteamAPICall_t api_call = SteamInventory()->RequestEligiblePromoItemDefinitionsIDs(user_id);
+	SteamAPICall_t api_call = SteamGameServerInventory()->RequestEligiblePromoItemDefinitionsIDs(user_id);
 	callResultEligiblePromoItemDefIDs.Set(api_call, this, &SteamServer::inventory_eligible_promo_item);
 }
 
 // Request prices for all item definitions that can be purchased in the user's local currency. A SteamInventoryRequestPricesResult_t call result will be returned with the user's local currency code. After that, you can call GetNumItemsWithPrices and GetItemsWithPrices to get prices for all the known item definitions, or GetItemPrice for a specific item definition.
 void SteamServer::requestPrices() {
-	ERR_FAIL_COND_MSG(SteamInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: requestPrices");
-	SteamAPICall_t api_call = SteamInventory()->RequestPrices();
+	ERR_FAIL_COND_MSG(SteamGameServerInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: requestPrices");
+	SteamAPICall_t api_call = SteamGameServerInventory()->RequestPrices();
 	callResultRequestPrices.Set(api_call, this, &SteamServer::inventory_request_prices_result);
 }
 
 // Serialized result sets contain a short signature which can't be forged or replayed across different game sessions.
 PackedByteArray SteamServer::serializeResult(int32 this_inventory_handle) {
 	PackedByteArray result_serialized;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, result_serialized, "[STEAM SERVER] Inventory class not found when calling: serializeResult");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, result_serialized, "[STEAM SERVER] Inventory class not found when calling: serializeResult");
 	if (this_inventory_handle == 0) {
 		this_inventory_handle = inventory_handle;
 	}
@@ -1150,7 +1160,7 @@ PackedByteArray SteamServer::serializeResult(int32 this_inventory_handle) {
 	uint32 buffer_size = STEAM_BUFFER_SIZE;
 	PackedByteArray buffer;
 	buffer.resize(buffer_size);
-	if (SteamInventory()->SerializeResult((SteamInventoryResult_t)this_inventory_handle, buffer.ptrw(), &buffer_size)) {
+	if (SteamGameServerInventory()->SerializeResult((SteamInventoryResult_t)this_inventory_handle, buffer.ptrw(), &buffer_size)) {
 		buffer.resize(buffer_size);
 		result_serialized = buffer;
 	}
@@ -1159,43 +1169,43 @@ PackedByteArray SteamServer::serializeResult(int32 this_inventory_handle) {
 
 // Sets a dynamic property for the given item. Supported value types are boolean.
 bool SteamServer::setPropertyBool(uint64_t item_id, const String &name, bool value, uint64_t this_inventory_update_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyBool");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyBool");
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
-	return SteamInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value);
+	return SteamGameServerInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value);
 }
 
 // Sets a dynamic property for the given item. Supported value types are 32 bit floats.
 bool SteamServer::setPropertyFloat(uint64_t item_id, const String &name, float value, uint64_t this_inventory_update_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyFloat");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyFloat");
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
-	return SteamInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value);
+	return SteamGameServerInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value);
 }
 
 // Sets a dynamic property for the given item. Supported value types are 64 bit integers.
 bool SteamServer::setPropertyInt(uint64_t item_id, const String &name, uint64_t value, uint64_t this_inventory_update_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyInt");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyInt");
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
-	return SteamInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), (int64)value);
+	return SteamGameServerInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), (int64)value);
 }
 
 // Sets a dynamic property for the given item. Supported value types are strings.
 bool SteamServer::setPropertyString(uint64_t item_id, const String &name, const String &value, uint64_t this_inventory_update_handle) {
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyString");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, false, "[STEAM SERVER] Inventory class not found when calling: setPropertyString");
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
-	return SteamInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value.utf8().get_data());
+	return SteamGameServerInventory()->SetProperty((SteamInventoryUpdateHandle_t)this_inventory_update_handle, (SteamItemInstanceID_t)item_id, name.utf8().get_data(), value.utf8().get_data());
 }
 
 // Starts the purchase process for the user, given a "shopping cart" of item definitions that the user would like to buy. The user will be prompted in the Steam Overlay to complete the purchase in their local currency, funding their Steam Wallet if necessary, etc.
 void SteamServer::startPurchase(const PackedInt64Array items, const PackedInt32Array quantity) {
-	ERR_FAIL_COND_MSG(SteamInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: startPurchase");
+	ERR_FAIL_COND_MSG(SteamGameServerInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: startPurchase");
 	uint32 total_items = items.size();
 	SteamItemDef_t *purchases = new SteamItemDef_t[total_items];
 	for (uint32 i = 0; i < total_items; i++) {
@@ -1203,26 +1213,26 @@ void SteamServer::startPurchase(const PackedInt64Array items, const PackedInt32A
 	}
 
 	uint32_t *these_quantities = (uint32*) quantity.ptr();
-	SteamAPICall_t api_call = SteamInventory()->StartPurchase(purchases, these_quantities, total_items);
+	SteamAPICall_t api_call = SteamGameServerInventory()->StartPurchase(purchases, these_quantities, total_items);
 	callResultStartPurchase.Set(api_call, this, &SteamServer::inventory_start_purchase_result);
 	delete[] purchases;
 }
 
 // Starts a transaction request to update dynamic properties on items for the current user. This call is rate-limited by user, so property modifications should be batched as much as possible (e.g. at the end of a map or game session). After calling SetProperty or RemoveProperty for all the items that you want to modify, you will need to call SubmitUpdateProperties to send the request to the Steam servers. A SteamInventoryResultReady_t callback will be fired with the results of the operation.
 void SteamServer::startUpdateProperties() {
-	ERR_FAIL_COND_MSG(SteamInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: startUpdateProperties");
-	inventory_update_handle = SteamInventory()->StartUpdateProperties();
+	ERR_FAIL_COND_MSG(SteamGameServerInventory() == NULL, "[STEAM SERVER] Inventory class not found when calling: startUpdateProperties");
+	inventory_update_handle = SteamGameServerInventory()->StartUpdateProperties();
 }
 
 // Submits the transaction request to modify dynamic properties on items for the current user. See StartUpdateProperties.
 int32 SteamServer::submitUpdateProperties(uint64_t this_inventory_update_handle) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: submitUpdateProperties");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: submitUpdateProperties");
 	if (this_inventory_update_handle == 0) {
 		this_inventory_update_handle = inventory_update_handle;
 	}
 
-	if (SteamInventory()->SubmitUpdateProperties((SteamInventoryUpdateHandle_t)this_inventory_update_handle, &new_inventory_handle)) {
+	if (SteamGameServerInventory()->SubmitUpdateProperties((SteamInventoryUpdateHandle_t)this_inventory_update_handle, &new_inventory_handle)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -1231,14 +1241,14 @@ int32 SteamServer::submitUpdateProperties(uint64_t this_inventory_update_handle)
 // Transfer items between stacks within a user's inventory.
 int32 SteamServer::transferItemQuantity(uint64_t item_id, uint32 quantity, uint64_t item_destination, bool split) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: transferItemQuantity");
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: transferItemQuantity");
 	if (split) {
-		if (SteamInventory()->TransferItemQuantity(&new_inventory_handle, (SteamItemInstanceID_t)item_id, quantity, k_SteamItemInstanceIDInvalid)) {
+		if (SteamGameServerInventory()->TransferItemQuantity(&new_inventory_handle, (SteamItemInstanceID_t)item_id, quantity, k_SteamItemInstanceIDInvalid)) {
 			inventory_handle = new_inventory_handle;
 		}
 	}
 	else {
-		if (SteamInventory()->TransferItemQuantity(&new_inventory_handle, (SteamItemInstanceID_t)item_id, quantity, (SteamItemInstanceID_t)item_destination)) {
+		if (SteamGameServerInventory()->TransferItemQuantity(&new_inventory_handle, (SteamItemInstanceID_t)item_id, quantity, (SteamItemInstanceID_t)item_destination)) {
 			inventory_handle = new_inventory_handle;
 		}
 	}
@@ -1248,8 +1258,8 @@ int32 SteamServer::transferItemQuantity(uint64_t item_id, uint32 quantity, uint6
 // Trigger an item drop if the user has played a long enough period of time.
 int32 SteamServer::triggerItemDrop(uint32 definition) {
 	int32 new_inventory_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: triggerItemDrop");
-	if (SteamInventory()->TriggerItemDrop(&new_inventory_handle, (SteamItemDef_t)definition)) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, new_inventory_handle, "[STEAM SERVER] Inventory class not found when calling: triggerItemDrop");
+	if (SteamGameServerInventory()->TriggerItemDrop(&new_inventory_handle, (SteamItemDef_t)definition)) {
 		inventory_handle = new_inventory_handle;
 	}
 	return new_inventory_handle;
@@ -1260,38 +1270,38 @@ int32 SteamServer::triggerItemDrop(uint32 definition) {
 
 // This allows the game to specify accept an incoming packet.
 bool SteamServer::acceptP2PSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: acceptP2PSessionWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: acceptP2PSessionWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
-	return SteamNetworking()->AcceptP2PSessionWithUser(steam_id);
+	return SteamGameServerNetworking()->AcceptP2PSessionWithUser(steam_id);
 }
 
 // Allow or disallow P2P connections to fall back to being relayed through the Steam servers if a direct connection or NAT-traversal cannot be established.
 bool SteamServer::allowP2PPacketRelay(bool allow) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: allowP2PPacketRelay");
-	return SteamNetworking()->AllowP2PPacketRelay(allow);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: allowP2PPacketRelay");
+	return SteamGameServerNetworking()->AllowP2PPacketRelay(allow);
 }
 
 // Closes a P2P channel when you're done talking to a user on the specific channel.
 bool SteamServer::closeP2PChannelWithUser(uint64_t remote_steam_id, int channel) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PChannelWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PChannelWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
-	return SteamNetworking()->CloseP2PChannelWithUser(steam_id, channel);
+	return SteamGameServerNetworking()->CloseP2PChannelWithUser(steam_id, channel);
 }
 
 // This should be called when you're done communicating with a user, as this will free up all of the resources allocated for the connection under-the-hood.
 bool SteamServer::closeP2PSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PSessionWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PSessionWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
-	return SteamNetworking()->CloseP2PSessionWithUser(steam_id);
+	return SteamGameServerNetworking()->CloseP2PSessionWithUser(steam_id);
 }
 
 // Fills out a P2PSessionState_t structure with details about the connection like whether or not there is an active connection.
 Dictionary SteamServer::getP2PSessionState(uint64_t remote_steam_id) {
 	Dictionary result;
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: getP2PSessionState");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: getP2PSessionState");
 	CSteamID steam_id = createSteamID(remote_steam_id);
 	P2PSessionState_t p2pSessionState;
-	if (SteamNetworking()->GetP2PSessionState(steam_id, &p2pSessionState)) {
+	if (SteamGameServerNetworking()->GetP2PSessionState(steam_id, &p2pSessionState)) {
 		result["connection_active"] = p2pSessionState.m_bConnectionActive; // true if we've got an active open connection
 		result["connecting"] = p2pSessionState.m_bConnecting; // true if we're currently trying to establish a connection
 		result["session_error"] = p2pSessionState.m_eP2PSessionError; // last error recorded (see enum in isteamnetworking.h)
@@ -1306,21 +1316,21 @@ Dictionary SteamServer::getP2PSessionState(uint64_t remote_steam_id) {
 
 // Calls IsP2PPacketAvailable() under the hood, returns the size of the available packet or zero if there is no such packet.
 uint32_t SteamServer::getAvailableP2PPacketSize(int channel) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, 0, "[STEAM SERVER] Game Server class not found when calling: getAvailableP2PPacketSize");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, 0, "[STEAM SERVER] Game Server class not found when calling: getAvailableP2PPacketSize");
 	uint32_t message_size = 0;
-	return (SteamNetworking()->IsP2PPacketAvailable(&message_size, channel)) ? message_size : 0;
+	return (SteamGameServerNetworking()->IsP2PPacketAvailable(&message_size, channel)) ? message_size : 0;
 }
 
 // Reads in a packet that has been sent from another user via SendP2PPacket.
 Dictionary SteamServer::readP2PPacket(uint32_t packet, int channel) {
 	Dictionary result;
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: readP2PPacket");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: readP2PPacket");
 	PackedByteArray data;
 	data.resize(packet);
 	CSteamID steam_id;
 	uint32_t bytes_read = 0;
 
-	if (SteamNetworking()->ReadP2PPacket(data.ptrw(), packet, &bytes_read, &steam_id, channel)) {
+	if (SteamGameServerNetworking()->ReadP2PPacket(data.ptrw(), packet, &bytes_read, &steam_id, channel)) {
 		data.resize(bytes_read);
 		uint64_t remote_steam_id = steam_id.ConvertToUint64();
 		result["data"] = data;
@@ -1334,9 +1344,9 @@ Dictionary SteamServer::readP2PPacket(uint32_t packet, int channel) {
 
 // Sends a P2P packet to the specified user.
 bool SteamServer::sendP2PPacket(uint64_t remote_steam_id, PackedByteArray data, P2PSend send_type, int channel) {
-	ERR_FAIL_COND_V_MSG(SteamNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: sendP2PPacket");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: sendP2PPacket");
 	CSteamID steam_id = createSteamID(remote_steam_id);
-	return SteamNetworking()->SendP2PPacket(steam_id, data.ptr(), data.size(), EP2PSend(send_type), channel);
+	return SteamGameServerNetworking()->SendP2PPacket(steam_id, data.ptr(), data.size(), EP2PSend(send_type), channel);
 }
 
 
@@ -1344,29 +1354,29 @@ bool SteamServer::sendP2PPacket(uint64_t remote_steam_id, PackedByteArray data, 
 
 // AcceptSessionWithUser() should only be called in response to a SteamP2PSessionRequest_t callback SteamP2PSessionRequest_t will be posted if another user tries to send you a message, and you haven't tried to talk to them.
 bool SteamServer::acceptSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: acceptSessionWithUser");
-	return SteamNetworkingMessages()->AcceptSessionWithUser(getIdentityFromSteamID(remote_steam_id));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: acceptSessionWithUser");
+	return SteamGameServerNetworkingMessages()->AcceptSessionWithUser(getIdentityFromSteamID(remote_steam_id));
 }
 
 // Call this  when you're done talking to a user on a specific channel. Once all open channels to a user have been closed, the open session to the user will be closed, and any new data from this user will trigger a SteamP2PSessionRequest_t callback.
 bool SteamServer::closeChannelWithUser(uint64_t remote_steam_id, int channel) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: closeChannelWithUser");
-	return SteamNetworkingMessages()->CloseChannelWithUser(getIdentityFromSteamID(remote_steam_id), channel);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: closeChannelWithUser");
+	return SteamGameServerNetworkingMessages()->CloseChannelWithUser(getIdentityFromSteamID(remote_steam_id), channel);
 }
 
 // Call this when you're done talking to a user to immediately free up resources under-the-hood.
 bool SteamServer::closeSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: closeSessionWithUser");
-	return SteamNetworkingMessages()->CloseSessionWithUser(getIdentityFromSteamID(remote_steam_id));
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, false, "[STEAM SERVER] Networking Messages class not found when calling: closeSessionWithUser");
+	return SteamGameServerNetworkingMessages()->CloseSessionWithUser(getIdentityFromSteamID(remote_steam_id));
 }
 
 // Returns information about the latest state of a connection, if any, with the given peer.
 Dictionary SteamServer::getSessionConnectionInfo(uint64_t remote_steam_id, bool get_connection, bool get_status) {
 	Dictionary connection_info;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, connection_info, "[STEAM SERVER] Networking Messages class not found when calling: getSessionConnectionInfo");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, connection_info, "[STEAM SERVER] Networking Messages class not found when calling: getSessionConnectionInfo");
 	SteamNetConnectionInfo_t this_info;
 	SteamNetConnectionRealTimeStatus_t this_status;
-	int connection_state = SteamNetworkingMessages()->GetSessionConnectionInfo(getIdentityFromSteamID(remote_steam_id), &this_info, &this_status);
+	int connection_state = SteamGameServerNetworkingMessages()->GetSessionConnectionInfo(getIdentityFromSteamID(remote_steam_id), &this_info, &this_status);
 	// Parse the data to a dictionary
 	connection_info["connection_state"] = connection_state;
 
@@ -1407,11 +1417,11 @@ Dictionary SteamServer::getSessionConnectionInfo(uint64_t remote_steam_id, bool 
 // Reads the next message that has been sent from another user via SendMessageToUser() on the given channel. Returns number of messages returned into your list.  (0 if no message are available on that channel.)
 Array SteamServer::receiveMessagesOnChannel(int channel, int max_messages) {
 	Array messages;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, messages, "[STEAM SERVER] Networking Messages class not found when calling: receiveMessagesOnChannel");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, messages, "[STEAM SERVER] Networking Messages class not found when calling: receiveMessagesOnChannel");
 	// Allocate the space for the messages
 	SteamNetworkingMessage_t **channel_messages = new SteamNetworkingMessage_t *[max_messages];
 	// Get the messages
-	int available_messages = SteamNetworkingMessages()->ReceiveMessagesOnChannel(channel, channel_messages, max_messages);
+	int available_messages = SteamGameServerNetworkingMessages()->ReceiveMessagesOnChannel(channel, channel_messages, max_messages);
 
 	// Loop through and create the messages as dictionaries then add to the messages array
 	for (int i = 0; i < available_messages; i++) {
@@ -1446,8 +1456,8 @@ Array SteamServer::receiveMessagesOnChannel(int channel, int max_messages) {
 
 // Sends a message to the specified host. If we don't already have a session with that user, a session is implicitly created. There might be some handshaking that needs to happen before we can actually begin sending message data.
 int SteamServer::sendMessageToUser(uint64_t remote_steam_id, const PackedByteArray data, int flags, int channel) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] Networking Messages class not found when calling: sendMessageToUser");
-	return SteamNetworkingMessages()->SendMessageToUser(getIdentityFromSteamID(remote_steam_id), data.ptr(), data.size(), flags, channel);
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworkingMessages() == NULL, 0, "[STEAM SERVER] Networking Messages class not found when calling: sendMessageToUser");
+	return SteamGameServerNetworkingMessages()->SendMessageToUser(getIdentityFromSteamID(remote_steam_id), data.ptr(), data.size(), flags, channel);
 }
 
 
@@ -2242,14 +2252,14 @@ uint64_t SteamServer::getLocalTimestamp() {
 // This is a soft-dependency that is displayed on the web. It is up to the application to determine whether the item can actually
 // be used or not.
 void SteamServer::addAppDependency(uint64_t published_file_id, uint32_t app_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addAppDependency");
-	SteamAPICall_t api_call = SteamUGC()->AddAppDependency((PublishedFileId_t)published_file_id, (AppId_t)app_id);
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addAppDependency");
+	SteamAPICall_t api_call = SteamGameServerUGC()->AddAppDependency((PublishedFileId_t)published_file_id, (AppId_t)app_id);
 	callResultAddAppDependency.Set(api_call, this, &SteamServer::add_app_dependency_result);
 }
 
 bool SteamServer::addContentDescriptor(uint64_t update_handle, int descriptor_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addContentDescriptor");
-	return SteamUGC()->AddContentDescriptor((UGCUpdateHandle_t)update_handle, (EUGCContentDescriptorID)descriptor_id);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addContentDescriptor");
+	return SteamGameServerUGC()->AddContentDescriptor((UGCUpdateHandle_t)update_handle, (EUGCContentDescriptorID)descriptor_id);
 }
 
 // Adds a workshop item as a dependency to the specified item. If the nParentPublishedFileID item is of type
@@ -2257,62 +2267,62 @@ bool SteamServer::addContentDescriptor(uint64_t update_handle, int descriptor_id
 // Otherwise, the dependency is a soft one that is displayed on the web and can be retrieved via the ISteamUGC API using a
 // combination of the m_unNumChildren member variable of the SteamUGCDetails_t struct and GetQueryUGCChildren.
 void SteamServer::addDependency(uint64_t published_file_id, uint64_t child_published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addDependency");
-	SteamAPICall_t api_call = SteamUGC()->AddDependency((PublishedFileId_t)published_file_id, (PublishedFileId_t)child_published_file_id);
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addDependency");
+	SteamAPICall_t api_call = SteamGameServerUGC()->AddDependency((PublishedFileId_t)published_file_id, (PublishedFileId_t)child_published_file_id);
 	callResultAddUGCDependency.Set(api_call, this, &SteamServer::add_ugc_dependency_result);
 }
 
 // Adds a excluded tag to a pending UGC Query. This will only return UGC without the specified tag.
 bool SteamServer::addExcludedTag(uint64_t query_handle, const String &tag_name) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addExcludedTag");
-	return SteamUGC()->AddExcludedTag((UGCQueryHandle_t)query_handle, tag_name.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addExcludedTag");
+	return SteamGameServerUGC()->AddExcludedTag((UGCQueryHandle_t)query_handle, tag_name.utf8().get_data());
 }
 
 // Adds a key-value tag pair to an item. Keys can map to multiple different values (1-to-many relationship).
 bool SteamServer::addItemKeyValueTag(uint64_t update_handle, const String &key, const String &value) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemKeyValueTag");
-	return SteamUGC()->AddItemKeyValueTag((UGCUpdateHandle_t)update_handle, key.utf8().get_data(), value.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemKeyValueTag");
+	return SteamGameServerUGC()->AddItemKeyValueTag((UGCUpdateHandle_t)update_handle, key.utf8().get_data(), value.utf8().get_data());
 }
 
 // Adds an additional preview file for the item.
 bool SteamServer::addItemPreviewFile(uint64_t query_handle, const String &preview_file, ItemPreviewType type) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemPreviewFile");
-	return SteamUGC()->AddItemPreviewFile((UGCQueryHandle_t)query_handle, preview_file.utf8().get_data(), (EItemPreviewType)type);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemPreviewFile");
+	return SteamGameServerUGC()->AddItemPreviewFile((UGCQueryHandle_t)query_handle, preview_file.utf8().get_data(), (EItemPreviewType)type);
 }
 
 // Adds an additional video preview from YouTube for the item.
 bool SteamServer::addItemPreviewVideo(uint64_t query_handle, const String &video_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemPreviewVideo");
-	return SteamUGC()->AddItemPreviewVideo((UGCQueryHandle_t)query_handle, video_id.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addItemPreviewVideo");
+	return SteamGameServerUGC()->AddItemPreviewVideo((UGCQueryHandle_t)query_handle, video_id.utf8().get_data());
 }
 
 // Adds a workshop item to the users favorites list.
 void SteamServer::addItemToFavorites(uint32_t app_id, uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addItemToFavorites");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: addItemToFavorites");
 	AppId_t app = (uint32_t)app_id;
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->AddItemToFavorites(app, file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->AddItemToFavorites(app, file_id);
 	callResultFavoriteItemListChanged.Set(api_call, this, &SteamServer::user_favorite_items_list_changed);
 }
 
 // Adds a required key-value tag to a pending UGC Query. This will only return workshop items that have a key = pKey and a
 // value = pValue.
 bool SteamServer::addRequiredKeyValueTag(uint64_t query_handle, const String &key, const String &value) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addRequiredKeyValueTag");
-	return SteamUGC()->AddRequiredKeyValueTag((UGCQueryHandle_t)query_handle, key.utf8().get_data(), value.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addRequiredKeyValueTag");
+	return SteamGameServerUGC()->AddRequiredKeyValueTag((UGCQueryHandle_t)query_handle, key.utf8().get_data(), value.utf8().get_data());
 }
 
 // Adds a required tag to a pending UGC Query. This will only return UGC with the specified tag.
 bool SteamServer::addRequiredTag(uint64_t query_handle, const String &tag_name) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addRequiredTag");
-	return SteamUGC()->AddRequiredTag((UGCQueryHandle_t)query_handle, tag_name.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: addRequiredTag");
+	return SteamGameServerUGC()->AddRequiredTag((UGCQueryHandle_t)query_handle, tag_name.utf8().get_data());
 }
 
 // Adds the requirement that the returned items from the pending UGC Query have at least one of the tags in the given set (logical
 // "or"). For each tag group that is added, at least one tag from each group is required to be on the matching items.
 bool SteamServer::addRequiredTagGroup(uint64_t query_handle, Array tag_array) {
 	bool added_tag_group = false;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, added_tag_group, "[STEAM SERVER] UGC class not found when calling: addRequiredTagGroup");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, added_tag_group, "[STEAM SERVER] UGC class not found when calling: addRequiredTagGroup");
 	UGCQueryHandle_t handle = uint64(query_handle);
 	std::vector<CharString> string_store(tag_array.size());
 	std::vector<const char *> strings(tag_array.size());
@@ -2325,46 +2335,46 @@ bool SteamServer::addRequiredTagGroup(uint64_t query_handle, Array tag_array) {
 	SteamParamStringArray_t tag;
 	tag.m_nNumStrings = strings.size();
 	tag.m_ppStrings = strings.data();
-	added_tag_group = SteamUGC()->AddRequiredTagGroup(handle, &tag);
+	added_tag_group = SteamGameServerUGC()->AddRequiredTagGroup(handle, &tag);
 	return added_tag_group;
 }
 
 // Lets game servers set a specific workshop folder before issuing any UGC commands.
 bool SteamServer::initWorkshopForGameServer(uint32_t workshop_depot_id, String folder) {
 	bool initialized_workshop = false;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, initialized_workshop, "[STEAM SERVER] UGC class not found when calling: initWorkshopForGameServer");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, initialized_workshop, "[STEAM SERVER] UGC class not found when calling: initWorkshopForGameServer");
 	DepotId_t workshop = (uint32_t)workshop_depot_id;
-	initialized_workshop = SteamUGC()->BInitWorkshopForGameServer(workshop, folder.utf8());
+	initialized_workshop = SteamGameServerUGC()->BInitWorkshopForGameServer(workshop, folder.utf8());
 	return initialized_workshop;
 }
 
 // Creates a new workshop item with no content attached yet.
 void SteamServer::createItem(uint32 app_id, WorkshopFileType file_type) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: createItem");
-	SteamAPICall_t api_call = SteamUGC()->CreateItem((AppId_t)app_id, (EWorkshopFileType)file_type);
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: createItem");
+	SteamAPICall_t api_call = SteamGameServerUGC()->CreateItem((AppId_t)app_id, (EWorkshopFileType)file_type);
 	callResultItemCreate.Set(api_call, this, &SteamServer::item_created);
 }
 
 // Query for all matching UGC. You can use this to list all of the available UGC for your app.
 uint64_t SteamServer::createQueryAllUGCRequest(UGCQuery query_type, UGCMatchingUGCType matching_type, uint32_t creator_id, uint32_t consumer_id, uint32 page) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: createQueryAllUGCRequest");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: createQueryAllUGCRequest");
 	AppId_t creator = (uint32_t)creator_id;
 	AppId_t consumer = (uint32_t)consumer_id;
-	UGCQueryHandle_t handle = SteamUGC()->CreateQueryAllUGCRequest((EUGCQuery)query_type, (EUGCMatchingUGCType)matching_type, creator, consumer, page);
+	UGCQueryHandle_t handle = SteamGameServerUGC()->CreateQueryAllUGCRequest((EUGCQuery)query_type, (EUGCMatchingUGCType)matching_type, creator, consumer, page);
 	return (uint64_t)handle;
 }
 
 // Query for the details of specific workshop items.
 uint64_t SteamServer::createQueryUGCDetailsRequest(Array published_file_ids) {
 	uint64_t this_handle = 0;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, this_handle, "[STEAM SERVER] UGC class not found when calling: createQueryUGCDetailsRequest");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, this_handle, "[STEAM SERVER] UGC class not found when calling: createQueryUGCDetailsRequest");
 	uint32 file_count = published_file_ids.size();
 	if (file_count != 0) {
 		PublishedFileId_t *file_ids = new PublishedFileId_t[file_count];
 		for (uint32 i = 0; i < file_count; i++) {
 			file_ids[i] = (uint64_t)published_file_ids[i];
 		}
-		UGCQueryHandle_t handle = SteamUGC()->CreateQueryUGCDetailsRequest(file_ids, file_count);
+		UGCQueryHandle_t handle = SteamGameServerUGC()->CreateQueryUGCDetailsRequest(file_ids, file_count);
 		delete[] file_ids;
 		this_handle = (uint64_t)handle;
 	}
@@ -2373,21 +2383,21 @@ uint64_t SteamServer::createQueryUGCDetailsRequest(Array published_file_ids) {
 
 // Query UGC associated with a user. You can use this to list the UGC the user is subscribed to amongst other things.
 uint64_t SteamServer::createQueryUserUGCRequest(uint64_t steam_id, UserUGCList list_type, UGCMatchingUGCType matching_ugc_type, UserUGCListSortOrder sort_order, uint32_t creator_id, uint32_t consumer_id, uint32 page) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: createQueryUGCDetailsRequest");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: createQueryUGCDetailsRequest");
 	// Get tue universe ID from the Steam ID
 	CSteamID user_id = (uint64)steam_id;
 	AccountID_t account = (AccountID_t)user_id.ConvertToUint64();
 	AppId_t creator = (int)creator_id;
 	AppId_t consumer = (int)consumer_id;
-	UGCQueryHandle_t handle = SteamUGC()->CreateQueryUserUGCRequest(account, (EUserUGCList)list_type, (EUGCMatchingUGCType)matching_ugc_type, (EUserUGCListSortOrder)sort_order, creator, consumer, page);
+	UGCQueryHandle_t handle = SteamGameServerUGC()->CreateQueryUserUGCRequest(account, (EUserUGCList)list_type, (EUGCMatchingUGCType)matching_ugc_type, (EUserUGCListSortOrder)sort_order, creator, consumer, page);
 	return (uint64_t)handle;
 }
 
 // Deletes the item without prompting the user.
 void SteamServer::deleteItem(uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: deleteItem");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: deleteItem");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->DeleteItem(file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->DeleteItem(file_id);
 	callResultDeleteItem.Set(api_call, this, &SteamServer::item_deleted);
 }
 
@@ -2396,26 +2406,26 @@ void SteamServer::deleteItem(uint64_t published_file_id) {
 // If item is not subscribed to, it will be cached for some time. If bHighPriority is set, any other item download will be
 // suspended and this item downloaded ASAP.
 bool SteamServer::downloadItem(uint64_t published_file_id, bool high_priority) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: downloadItem");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: downloadItem");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	return SteamUGC()->DownloadItem(file_id, high_priority);
+	return SteamGameServerUGC()->DownloadItem(file_id, high_priority);
 }
 
 // Returns any app dependencies that are associated with the given item.
 void SteamServer::getAppDependencies(uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: getAppDependencies");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: getAppDependencies");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->GetAppDependencies(file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->GetAppDependencies(file_id);
 	callResultGetAppDependencies.Set(api_call, this, &SteamServer::get_app_dependencies_result);
 }
 
 // Get info about a pending download of a workshop item that has k_EItemStateNeedsUpdate set.
 Dictionary SteamServer::getItemDownloadInfo(uint64_t published_file_id) {
 	Dictionary info;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, info, "[STEAM SERVER] UGC class not found when calling: getItemDownloadInfo");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, info, "[STEAM SERVER] UGC class not found when calling: getItemDownloadInfo");
 	uint64 downloaded = 0;
 	uint64 total = 0;
-	info["ret"] = SteamUGC()->GetItemDownloadInfo((PublishedFileId_t)published_file_id, &downloaded, &total);
+	info["ret"] = SteamGameServerUGC()->GetItemDownloadInfo((PublishedFileId_t)published_file_id, &downloaded, &total);
 	if (info["ret"]) {
 		info["downloaded"] = uint64_t(downloaded);
 		info["total"] = uint64_t(total);
@@ -2427,12 +2437,12 @@ Dictionary SteamServer::getItemDownloadInfo(uint64_t published_file_id) {
 Dictionary SteamServer::getItemInstallInfo(uint64_t published_file_id) {
 	Dictionary info;
 	info["ret"] = false;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, info, "[STEAM SERVER] UGC class not found when calling: getItemInstallInfo");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, info, "[STEAM SERVER] UGC class not found when calling: getItemInstallInfo");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
 	uint64 size_on_disk;
 	char folder[1024] = { 0 };
 	uint32 time_stamp;
-	info["ret"] = SteamUGC()->GetItemInstallInfo((PublishedFileId_t)file_id, &size_on_disk, folder, sizeof(folder), &time_stamp);
+	info["ret"] = SteamGameServerUGC()->GetItemInstallInfo((PublishedFileId_t)file_id, &size_on_disk, folder, sizeof(folder), &time_stamp);
 	if (info["ret"]) {
 		info["size"] = (uint64_t)size_on_disk;
 		info["folder"] = folder;
@@ -2443,19 +2453,19 @@ Dictionary SteamServer::getItemInstallInfo(uint64_t published_file_id) {
 
 // Gets the current state of a workshop item on this client.
 uint32 SteamServer::getItemState(uint64_t published_file_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getItemState");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getItemState");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	return SteamUGC()->GetItemState(file_id);
+	return SteamGameServerUGC()->GetItemState(file_id);
 }
 
 // Gets the progress of an item update.
 Dictionary SteamServer::getItemUpdateProgress(uint64_t update_handle) {
 	Dictionary update_progress;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, update_progress, "[STEAM SERVER] UGC class not found when calling: getItemUpdateProgress");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, update_progress, "[STEAM SERVER] UGC class not found when calling: getItemUpdateProgress");
 	UGCUpdateHandle_t handle = (uint64_t)update_handle;
 	uint64 processed = 0;
 	uint64 total = 0;
-	EItemUpdateStatus status = SteamUGC()->GetItemUpdateProgress(handle, &processed, &total);
+	EItemUpdateStatus status = SteamGameServerUGC()->GetItemUpdateProgress(handle, &processed, &total);
 	update_progress["status"] = status;
 	update_progress["processed"] = uint64_t(processed);
 	update_progress["total"] = uint64_t(total);
@@ -2464,25 +2474,25 @@ Dictionary SteamServer::getItemUpdateProgress(uint64_t update_handle) {
 
 // Gets the total number of items the current user is subscribed to for the game or application.
 uint32 SteamServer::getNumSubscribedItems() {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getNumSubscribedItems");
-	return SteamUGC()->GetNumSubscribedItems();
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getNumSubscribedItems");
+	return SteamGameServerUGC()->GetNumSubscribedItems();
 }
 
 // Get the number of supported game versions for this UGC content.
 uint32 SteamServer::getNumSupportedGameVersions(uint64_t query_handle, uint32 index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getNumSupportedGameVersions");
-	return SteamUGC()->GetNumSupportedGameVersions((UGCQueryHandle_t)query_handle, index);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getNumSupportedGameVersions");
+	return SteamGameServerUGC()->GetNumSupportedGameVersions((UGCQueryHandle_t)query_handle, index);
 }
 
 // Retrieve the details of an additional preview associated with an individual workshop item after receiving a querying UGC call
 // result.
 Dictionary SteamServer::getQueryUGCAdditionalPreview(uint64_t query_handle, uint32 index, uint32 preview_index) {
 	Dictionary preview;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, preview, "[STEAM SERVER] UGC class not found when calling: getQueryUGCAdditionalPreview");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, preview, "[STEAM SERVER] UGC class not found when calling: getQueryUGCAdditionalPreview");
 	char url_or_video_id[256 + 1]{};
 	char original_filename[256 + 1]{};
 	EItemPreviewType previewType;
-	bool success = SteamUGC()->GetQueryUGCAdditionalPreview((UGCQueryHandle_t)query_handle, index, preview_index, url_or_video_id, 256, original_filename, 256, &previewType);
+	bool success = SteamGameServerUGC()->GetQueryUGCAdditionalPreview((UGCQueryHandle_t)query_handle, index, preview_index, url_or_video_id, 256, original_filename, 256, &previewType);
 	if (success) {
 		preview["success"] = success;
 		preview["handle"] = query_handle;
@@ -2499,10 +2509,10 @@ Dictionary SteamServer::getQueryUGCAdditionalPreview(uint64_t query_handle, uint
 // either be a part of a collection or some other dependency (see AddDependency).
 Dictionary SteamServer::getQueryUGCChildren(uint64_t query_handle, uint32 index, uint32_t child_count) {
 	Dictionary children;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, children, "[STEAM SERVER] UGC class not found when calling: getQueryUGCChildren");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, children, "[STEAM SERVER] UGC class not found when calling: getQueryUGCChildren");
 	PackedVector2Array vec;
 	vec.resize(child_count);
-	bool success = SteamUGC()->GetQueryUGCChildren((UGCQueryHandle_t)query_handle, index, (PublishedFileId_t *)vec.ptrw(), child_count);
+	bool success = SteamGameServerUGC()->GetQueryUGCChildren((UGCQueryHandle_t)query_handle, index, (PublishedFileId_t *)vec.ptrw(), child_count);
 	if (success) {
 		Array godot_arr;
 		godot_arr.resize(child_count);
@@ -2520,10 +2530,10 @@ Dictionary SteamServer::getQueryUGCChildren(uint64_t query_handle, uint32 index,
 
 Dictionary SteamServer::getQueryUGCContentDescriptors(uint64_t query_handle, uint32 index, uint32_t max_entries) {
 	Dictionary descriptors;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, descriptors, "[STEAM SERVER] UGC class not found when calling: getQueryUGCContentDescriptors");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, descriptors, "[STEAM SERVER] UGC class not found when calling: getQueryUGCContentDescriptors");
 	PackedVector2Array vec;
 	vec.resize(max_entries);
-	uint32_t result = SteamUGC()->GetQueryUGCContentDescriptors((UGCQueryHandle_t)query_handle, index, (EUGCContentDescriptorID *)vec.ptrw(), max_entries);
+	uint32_t result = SteamGameServerUGC()->GetQueryUGCContentDescriptors((UGCQueryHandle_t)query_handle, index, (EUGCContentDescriptorID *)vec.ptrw(), max_entries);
 	Array descriptor_array;
 	descriptor_array.resize(max_entries);
 	for (uint32_t i = 0; i < max_entries; i++) {
@@ -2539,10 +2549,10 @@ Dictionary SteamServer::getQueryUGCContentDescriptors(uint64_t query_handle, uin
 // Retrieve the details of a key-value tag associated with an individual workshop item after receiving a querying UGC call result.
 Dictionary SteamServer::getQueryUGCKeyValueTag(uint64_t query_handle, uint32 index, uint32 key_value_tag_index) {
 	Dictionary tag;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, tag, "[STEAM SERVER] UGC class not found when calling: getQueryUGCKeyValueTag");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, tag, "[STEAM SERVER] UGC class not found when calling: getQueryUGCKeyValueTag");
 	char key[256 + 1]{};
 	char value[256 + 1]{};
-	bool success = SteamUGC()->GetQueryUGCKeyValueTag((UGCQueryHandle_t)query_handle, index, key_value_tag_index, key, 256, value, 256);
+	bool success = SteamGameServerUGC()->GetQueryUGCKeyValueTag((UGCQueryHandle_t)query_handle, index, key_value_tag_index, key, 256, value, 256);
 	if (success) {
 		tag["success"] = success;
 		tag["handle"] = query_handle;
@@ -2557,9 +2567,9 @@ Dictionary SteamServer::getQueryUGCKeyValueTag(uint64_t query_handle, uint32 ind
 // Retrieve the developer set metadata of an individual workshop item after receiving a querying UGC call result.
 String SteamServer::getQueryUGCMetadata(uint64_t query_handle, uint32 index) {
 	String query_ugc_metadata = "";
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, query_ugc_metadata, "[STEAM SERVER] UGC class not found when calling: getQueryUGCMetadata");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, query_ugc_metadata, "[STEAM SERVER] UGC class not found when calling: getQueryUGCMetadata");
 	char ugc_metadata[5000 + 1]{};
-	bool success = SteamUGC()->GetQueryUGCMetadata((UGCQueryHandle_t)query_handle, index, ugc_metadata, 5000);
+	bool success = SteamGameServerUGC()->GetQueryUGCMetadata((UGCQueryHandle_t)query_handle, index, ugc_metadata, 5000);
 	if (success) {
 		query_ugc_metadata = ugc_metadata;
 	}
@@ -2568,29 +2578,29 @@ String SteamServer::getQueryUGCMetadata(uint64_t query_handle, uint32 index) {
 
 // Retrieve the number of additional previews of an individual workshop item after receiving a querying UGC call result.
 uint32 SteamServer::getQueryUGCNumAdditionalPreviews(uint64_t query_handle, uint32 index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumAdditionalPreviews");
-	return SteamUGC()->GetQueryUGCNumAdditionalPreviews((UGCQueryHandle_t)query_handle, index);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumAdditionalPreviews");
+	return SteamGameServerUGC()->GetQueryUGCNumAdditionalPreviews((UGCQueryHandle_t)query_handle, index);
 }
 
 // Retrieve the number of key-value tags of an individual workshop item after receiving a querying UGC call result.
 uint32 SteamServer::getQueryUGCNumKeyValueTags(uint64_t query_handle, uint32 index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumKeyValueTags");
-	return SteamUGC()->GetQueryUGCNumKeyValueTags((UGCQueryHandle_t)query_handle, index);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumKeyValueTags");
+	return SteamGameServerUGC()->GetQueryUGCNumKeyValueTags((UGCQueryHandle_t)query_handle, index);
 }
 
 // Retrieve the number of tags for an individual workshop item after receiving a querying UGC call result. You should call this in
 // a loop to get the details of all the workshop items returned.
 uint32 SteamServer::getQueryUGCNumTags(uint64_t query_handle, uint32 index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumTags");
-	return SteamUGC()->GetQueryUGCNumTags((UGCQueryHandle_t)query_handle, index);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: getQueryUGCNumTags");
+	return SteamGameServerUGC()->GetQueryUGCNumTags((UGCQueryHandle_t)query_handle, index);
 }
 
 // Retrieve the URL to the preview image of an individual workshop item after receiving a querying UGC call result.
 String SteamServer::getQueryUGCPreviewURL(uint64_t query_handle, uint32 index) {
 	String query_ugc_preview_url = "";
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, query_ugc_preview_url, "[STEAM SERVER] UGC class not found when calling: getQueryUGCPreviewURL");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, query_ugc_preview_url, "[STEAM SERVER] UGC class not found when calling: getQueryUGCPreviewURL");
 	char url[256 + 1]{};
-	bool success = SteamUGC()->GetQueryUGCPreviewURL((UGCQueryHandle_t)query_handle, index, url, 256);
+	bool success = SteamGameServerUGC()->GetQueryUGCPreviewURL((UGCQueryHandle_t)query_handle, index, url, 256);
 	if (success) {
 		query_ugc_preview_url = url;
 	}
@@ -2600,9 +2610,9 @@ String SteamServer::getQueryUGCPreviewURL(uint64_t query_handle, uint32 index) {
 // Retrieve the details of an individual workshop item after receiving a querying UGC call result.
 Dictionary SteamServer::getQueryUGCResult(uint64_t query_handle, uint32 index) {
 	Dictionary ugc_result;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, ugc_result, "[STEAM SERVER] UGC class not found when calling: getQueryUGCResult");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, ugc_result, "[STEAM SERVER] UGC class not found when calling: getQueryUGCResult");
 	SteamUGCDetails_t query_details;
-	bool success = SteamUGC()->GetQueryUGCResult((UGCQueryHandle_t)query_handle, index, &query_details);
+	bool success = SteamGameServerUGC()->GetQueryUGCResult((UGCQueryHandle_t)query_handle, index, &query_details);
 	if (success) {
 		ugc_result["result"] = (uint64_t)query_details.m_eResult;
 		ugc_result["file_id"] = (uint64_t)query_details.m_nPublishedFileId;
@@ -2638,9 +2648,9 @@ Dictionary SteamServer::getQueryUGCResult(uint64_t query_handle, uint32 index) {
 // Retrieve various statistics of an individual workshop item after receiving a querying UGC call result.
 Dictionary SteamServer::getQueryUGCStatistic(uint64_t query_handle, uint32 index, ItemStatistic stat_type) {
 	Dictionary ugc_stat;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, ugc_stat, "[STEAM SERVER] UGC class not found when calling: getQueryUGCStatistic");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, ugc_stat, "[STEAM SERVER] UGC class not found when calling: getQueryUGCStatistic");
 	uint64 value = 0;
-	bool success = SteamUGC()->GetQueryUGCStatistic((UGCQueryHandle_t)query_handle, index, (EItemStatistic)stat_type, &value);
+	bool success = SteamGameServerUGC()->GetQueryUGCStatistic((UGCQueryHandle_t)query_handle, index, (EItemStatistic)stat_type, &value);
 	if (success) {
 		ugc_stat["success"] = success;
 		ugc_stat["handle"] = query_handle;
@@ -2654,9 +2664,9 @@ Dictionary SteamServer::getQueryUGCStatistic(uint64_t query_handle, uint32 index
 // Retrieve the "nth" tag associated with an individual workshop item after receiving a querying UGC call result.
 // You should call this in a loop to get the details of all the workshop items returned.
 String SteamServer::getQueryUGCTag(uint64_t query_handle, uint32 index, uint32 tag_index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, "", "[STEAM SERVER] UGC class not found when calling: getQueryUGCTag");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, "", "[STEAM SERVER] UGC class not found when calling: getQueryUGCTag");
 	char tag[64 + 1]{};
-	SteamUGC()->GetQueryUGCTag((UGCQueryHandle_t)query_handle, index, tag_index, tag, 64);
+	SteamGameServerUGC()->GetQueryUGCTag((UGCQueryHandle_t)query_handle, index, tag_index, tag, 64);
 	return tag;
 }
 
@@ -2664,19 +2674,19 @@ String SteamServer::getQueryUGCTag(uint64_t query_handle, uint32 index, uint32 t
 // receiving a querying UGC call result.
 // You should call this in a loop to get the details of all the workshop items returned.
 String SteamServer::getQueryUGCTagDisplayName(uint64_t query_handle, uint32 index, uint32 tag_index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, "", "[STEAM SERVER] UGC class not found when calling: getQueryUGCTagDisplayName");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, "", "[STEAM SERVER] UGC class not found when calling: getQueryUGCTagDisplayName");
 	char tag[256 + 1]{};
-	SteamUGC()->GetQueryUGCTagDisplayName((UGCQueryHandle_t)query_handle, index, tag_index, tag, 256);
+	SteamGameServerUGC()->GetQueryUGCTagDisplayName((UGCQueryHandle_t)query_handle, index, tag_index, tag, 256);
 	return tag;
 }
 
 // Gets a list of all of the items the current user is subscribed to for the current game.
 Array SteamServer::getSubscribedItems() {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, Array(), "[STEAM SERVER] UGC class not found when calling: getSubscribedItems");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, Array(), "[STEAM SERVER] UGC class not found when calling: getSubscribedItems");
 	Array subscribed;
-	uint32 num_items = SteamUGC()->GetNumSubscribedItems();
+	uint32 num_items = SteamGameServerUGC()->GetNumSubscribedItems();
 	PublishedFileId_t *items = new PublishedFileId_t[num_items];
-	uint32 item_list = SteamUGC()->GetSubscribedItems(items, num_items);
+	uint32 item_list = SteamGameServerUGC()->GetSubscribedItems(items, num_items);
 	for (uint32 i = 0; i < item_list; i++) {
 		subscribed.append((uint64_t)items[i]);
 	}
@@ -2687,11 +2697,11 @@ Array SteamServer::getSubscribedItems() {
 // Some items can specify that they have a version that is valid for a range of game versions (Steam branch).
 Dictionary SteamServer::getSupportedGameVersionData(uint64_t query_handle, uint32 index, uint32 version_index) {
 	Dictionary supported_version;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, supported_version, "[STEAM SERVER] UGC class not found when calling: getSupportedGameVersionData");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, supported_version, "[STEAM SERVER] UGC class not found when calling: getSupportedGameVersionData");
 	char branch_min[STEAM_BUFFER_SIZE];
 	char branch_max[STEAM_BUFFER_SIZE];
 	uint32 branch_size = 0;
-	if (SteamUGC()->GetSupportedGameVersionData((UGCQueryHandle_t)query_handle, index, version_index, branch_min, branch_max, branch_size)) {
+	if (SteamGameServerUGC()->GetSupportedGameVersionData((UGCQueryHandle_t)query_handle, index, version_index, branch_min, branch_max, branch_size)) {
 		supported_version["min"] = branch_min;
 		supported_version["max"] = branch_max;
 		supported_version["size"] = branch_size;
@@ -2703,9 +2713,9 @@ Dictionary SteamServer::getSupportedGameVersionData(uint64_t query_handle, uint3
 // Information is unclear how this actually works so here goes nothing!
 Array SteamServer::getUserContentDescriptorPreferences(uint32 max_entries) {
 	Array descriptors;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, descriptors, "[STEAM SERVER] UGC class not found when calling: getUserContentDescriptorPreferences");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, descriptors, "[STEAM SERVER] UGC class not found when calling: getUserContentDescriptorPreferences");
 	EUGCContentDescriptorID *descriptor_list = new EUGCContentDescriptorID[max_entries];
-	uint32 num_descriptors = SteamUGC()->GetUserContentDescriptorPreferences(descriptor_list, max_entries);
+	uint32 num_descriptors = SteamGameServerUGC()->GetUserContentDescriptorPreferences(descriptor_list, max_entries);
 	for (uint32 i = 0; i < num_descriptors; i++) {
 		descriptors.append(descriptor_list[i]);
 	}
@@ -2714,131 +2724,131 @@ Array SteamServer::getUserContentDescriptorPreferences(uint32 max_entries) {
 
 // Gets the users vote status on a workshop item.
 void SteamServer::getUserItemVote(uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: getUserItemVote");	
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: getUserItemVote");	
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->GetUserItemVote(file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->GetUserItemVote(file_id);
 	callResultGetUserItemVote.Set(api_call, this, &SteamServer::get_item_vote_result);
 }
 
 // Retrieve information related to the user's acceptance or not of the app's specific Workshop EULA.
 void SteamServer::getWorkshopEULAStatus() {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: subscribeItem");
-	SteamAPICall_t api_call = SteamUGC()->GetWorkshopEULAStatus();
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: subscribeItem");
+	SteamAPICall_t api_call = SteamGameServerUGC()->GetWorkshopEULAStatus();
 	callResultWorkshopEULAStatus.Set(api_call, this, &SteamServer::workshop_eula_status);
 }
 
 // Releases a UGC query handle when you are done with it to free up memory.
 bool SteamServer::releaseQueryUGCRequest(uint64_t query_handle) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: releaseQueryUGCRequest");
-	return SteamUGC()->ReleaseQueryUGCRequest((UGCQueryHandle_t)query_handle);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: releaseQueryUGCRequest");
+	return SteamGameServerUGC()->ReleaseQueryUGCRequest((UGCQueryHandle_t)query_handle);
 }
 
 // Removes the dependency between the given item and the appid. This list of dependencies can be retrieved by calling
 // GetAppDependencies.
 void SteamServer::removeAppDependency(uint64_t published_file_id, uint32_t app_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeAppDependency");	
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeAppDependency");	
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
 	AppId_t app = (uint32_t)app_id;
-	SteamAPICall_t api_call = SteamUGC()->RemoveAppDependency(file_id, app);
+	SteamAPICall_t api_call = SteamGameServerUGC()->RemoveAppDependency(file_id, app);
 	callResultRemoveAppDependency.Set(api_call, this, &SteamServer::remove_app_dependency_result);
 }
 
 bool SteamServer::removeContentDescriptor(uint64_t update_handle, int descriptor_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeContentDescriptor");
-	return SteamUGC()->RemoveContentDescriptor((UGCUpdateHandle_t)update_handle, (EUGCContentDescriptorID)descriptor_id);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeContentDescriptor");
+	return SteamGameServerUGC()->RemoveContentDescriptor((UGCUpdateHandle_t)update_handle, (EUGCContentDescriptorID)descriptor_id);
 }
 
 // Removes a workshop item as a dependency from the specified item.
 void SteamServer::removeDependency(uint64_t published_file_id, uint64_t child_published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeDependency");	
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeDependency");	
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
 	PublishedFileId_t childID = (uint64_t)child_published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->RemoveDependency(file_id, childID);
+	SteamAPICall_t api_call = SteamGameServerUGC()->RemoveDependency(file_id, childID);
 	callResultRemoveUGCDependency.Set(api_call, this, &SteamServer::remove_ugc_dependency_result);
 }
 
 // Removes a workshop item from the users favorites list.
 void SteamServer::removeItemFromFavorites(uint32_t app_id, uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeItemFromFavorites");	
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: removeItemFromFavorites");	
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
 	AppId_t app = (uint32_t)app_id;
-	SteamAPICall_t api_call = SteamUGC()->RemoveItemFromFavorites(app, file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->RemoveItemFromFavorites(app, file_id);
 	callResultFavoriteItemListChanged.Set(api_call, this, &SteamServer::user_favorite_items_list_changed);
 }
 
 // Removes an existing key value tag from an item.
 bool SteamServer::removeItemKeyValueTags(uint64_t update_handle, const String &key) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeItemKeyValueTags");
-	return SteamUGC()->RemoveItemKeyValueTags((UGCUpdateHandle_t)update_handle, key.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeItemKeyValueTags");
+	return SteamGameServerUGC()->RemoveItemKeyValueTags((UGCUpdateHandle_t)update_handle, key.utf8().get_data());
 }
 
 // Removes an existing preview from an item.
 bool SteamServer::removeItemPreview(uint64_t update_handle, uint32 index) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeItemPreview");
-	return SteamUGC()->RemoveItemPreview((UGCUpdateHandle_t)update_handle, index);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: removeItemPreview");
+	return SteamGameServerUGC()->RemoveItemPreview((UGCUpdateHandle_t)update_handle, index);
 }
 
 // Send a UGC query to Steam.
 void SteamServer::sendQueryUGCRequest(uint64_t update_handle) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: sendQueryUGCRequest");	
-	SteamAPICall_t api_call = SteamUGC()->SendQueryUGCRequest((UGCUpdateHandle_t)update_handle);
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: sendQueryUGCRequest");	
+	SteamAPICall_t api_call = SteamGameServerUGC()->SendQueryUGCRequest((UGCUpdateHandle_t)update_handle);
 	callResultUGCQueryCompleted.Set(api_call, this, &SteamServer::ugc_query_completed);
 }
 
 // Admin queries return hidden items.
 bool SteamServer::setAdminQuery(uint64_t update_handle, bool admin_query) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setAdminQuery");
-	return SteamUGC()->SetAdminQuery((UGCUpdateHandle_t)update_handle, admin_query);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setAdminQuery");
+	return SteamGameServerUGC()->SetAdminQuery((UGCUpdateHandle_t)update_handle, admin_query);
 }
 
 // Sets whether results will be returned from the cache for the specific period of time on a pending UGC Query.
 bool SteamServer::setAllowCachedResponse(uint64_t update_handle, uint32 max_age_seconds) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setAllowCachedResponse");
-	return SteamUGC()->SetAllowCachedResponse((UGCUpdateHandle_t)update_handle, max_age_seconds);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setAllowCachedResponse");
+	return SteamGameServerUGC()->SetAllowCachedResponse((UGCUpdateHandle_t)update_handle, max_age_seconds);
 }
 
 // Sets to only return items that have a specific filename on a pending UGC Query.
 bool SteamServer::setCloudFileNameFilter(uint64_t update_handle, const String &match_cloud_filename) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setCloudFileNameFilter");
-	return SteamUGC()->SetCloudFileNameFilter((UGCUpdateHandle_t)update_handle, match_cloud_filename.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setCloudFileNameFilter");
+	return SteamGameServerUGC()->SetCloudFileNameFilter((UGCUpdateHandle_t)update_handle, match_cloud_filename.utf8().get_data());
 }
 
 // Sets the folder that will be stored as the content for an item.
 bool SteamServer::setItemContent(uint64_t update_handle, const String &content_folder) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemContent");
-	return SteamUGC()->SetItemContent((UGCUpdateHandle_t)update_handle, content_folder.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemContent");
+	return SteamGameServerUGC()->SetItemContent((UGCUpdateHandle_t)update_handle, content_folder.utf8().get_data());
 }
 
 // Sets a new description for an item.
 bool SteamServer::setItemDescription(uint64_t update_handle, const String &description) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemDescription");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemDescription");
 	if ((uint32_t)description.length() > (uint32_t)k_cchPublishedDocumentDescriptionMax) {
 		printf("Description cannot have more than %d ASCII characters. Description not set.", k_cchPublishedDocumentDescriptionMax);
 		return false;
 	}
-	return SteamUGC()->SetItemDescription((UGCUpdateHandle_t)update_handle, description.utf8().get_data());
+	return SteamGameServerUGC()->SetItemDescription((UGCUpdateHandle_t)update_handle, description.utf8().get_data());
 }
 
 // Sets arbitrary metadata for an item. This metadata can be returned from queries without having to download and install the
 // actual content.
 bool SteamServer::setItemMetadata(uint64_t update_handle, const String &ugc_metadata) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemMetadata");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemMetadata");
 	if (ugc_metadata.utf8().length() > 5000) {
 		printf("Metadata cannot be more than %d bytes. Metadata not set.", 5000);
 	}
-	return SteamUGC()->SetItemMetadata((UGCUpdateHandle_t)update_handle, ugc_metadata.utf8().get_data());
+	return SteamGameServerUGC()->SetItemMetadata((UGCUpdateHandle_t)update_handle, ugc_metadata.utf8().get_data());
 }
 
 // Sets the primary preview image for the item.
 bool SteamServer::setItemPreview(uint64_t update_handle, const String &preview_file) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemPreview");
-	return SteamUGC()->SetItemPreview((UGCUpdateHandle_t)update_handle, preview_file.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemPreview");
+	return SteamGameServerUGC()->SetItemPreview((UGCUpdateHandle_t)update_handle, preview_file.utf8().get_data());
 }
 
 // Sets arbitrary developer specified tags on an item.
 bool SteamServer::setItemTags(uint64_t update_handle, Array tag_array, bool allow_admin_tags) {
 	bool tags_set = false;
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemTags");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemTags");
 	std::vector<CharString> string_store(tag_array.size());
 	std::vector<const char *> strings(tag_array.size());
 	uint32 str_count = tag_array.size();
@@ -2850,156 +2860,156 @@ bool SteamServer::setItemTags(uint64_t update_handle, Array tag_array, bool allo
 	SteamParamStringArray_t tag;
 	tag.m_nNumStrings = strings.size();
 	tag.m_ppStrings = strings.data();
-	tags_set = SteamUGC()->SetItemTags((UGCUpdateHandle_t)update_handle, &tag, allow_admin_tags);
+	tags_set = SteamGameServerUGC()->SetItemTags((UGCUpdateHandle_t)update_handle, &tag, allow_admin_tags);
 	return tags_set;
 }
 
 // Sets a new title for an item.
 bool SteamServer::setItemTitle(uint64_t update_handle, const String &title) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemTitle");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemTitle");
 	if (title.length() > 255) {
 		printf("Title cannot have more than %d ASCII characters. Title not set.", 255);
 		return false;
 	}
-	return SteamUGC()->SetItemTitle((UGCUpdateHandle_t)update_handle, title.utf8().get_data());
+	return SteamGameServerUGC()->SetItemTitle((UGCUpdateHandle_t)update_handle, title.utf8().get_data());
 }
 
 // Sets the language of the title and description that will be set in this item update.
 bool SteamServer::setItemUpdateLanguage(uint64_t update_handle, const String &language) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemUpdateLanguage");
-	return SteamUGC()->SetItemUpdateLanguage((UGCUpdateHandle_t)update_handle, language.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemUpdateLanguage");
+	return SteamGameServerUGC()->SetItemUpdateLanguage((UGCUpdateHandle_t)update_handle, language.utf8().get_data());
 }
 
 // Sets the visibility of an item.
 bool SteamServer::setItemVisibility(uint64_t update_handle, RemoteStoragePublishedFileVisibility visibility) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemVisibility");
-	return SteamUGC()->SetItemVisibility((UGCUpdateHandle_t)update_handle, (ERemoteStoragePublishedFileVisibility)visibility);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setItemVisibility");
+	return SteamGameServerUGC()->SetItemVisibility((UGCUpdateHandle_t)update_handle, (ERemoteStoragePublishedFileVisibility)visibility);
 }
 
 // Sets the language to return the title and description in for the items on a pending UGC Query.
 bool SteamServer::setLanguage(uint64_t query_handle, const String &language) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setLanguage");
-	return SteamUGC()->SetLanguage((UGCQueryHandle_t)query_handle, language.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setLanguage");
+	return SteamGameServerUGC()->SetLanguage((UGCQueryHandle_t)query_handle, language.utf8().get_data());
 }
 
 // Sets whether workshop items will be returned if they have one or more matching tag, or if all tags need to match on a pending
 // UGC Query.
 bool SteamServer::setMatchAnyTag(uint64_t query_handle, bool match_any_tag) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setMatchAnyTag");
-	return SteamUGC()->SetMatchAnyTag((UGCQueryHandle_t)query_handle, match_any_tag);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setMatchAnyTag");
+	return SteamGameServerUGC()->SetMatchAnyTag((UGCQueryHandle_t)query_handle, match_any_tag);
 }
 
 // Sets whether the order of the results will be updated based on the rank of items over a number of days on a pending UGC Query.
 bool SteamServer::setRankedByTrendDays(uint64_t query_handle, uint32 days) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setRankedByTrendDays");
-	return SteamUGC()->SetRankedByTrendDays((UGCQueryHandle_t)query_handle, days);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setRankedByTrendDays");
+	return SteamGameServerUGC()->SetRankedByTrendDays((UGCQueryHandle_t)query_handle, days);
 }
 
 // An empty string for either parameter means that it will match any version on that end of the range. This will only be applied
 // if the actual content has been changed.
 bool SteamServer::setRequiredGameVersions(uint64_t query_handle, String game_branch_min, String game_branch_max) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setRequiredGameVersions");
-	return SteamUGC()->SetRequiredGameVersions((UGCQueryHandle_t)query_handle, game_branch_min.utf8().get_data(), game_branch_max.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setRequiredGameVersions");
+	return SteamGameServerUGC()->SetRequiredGameVersions((UGCQueryHandle_t)query_handle, game_branch_min.utf8().get_data(), game_branch_max.utf8().get_data());
 }
 
 // Sets whether to return any additional images/videos attached to the items on a pending UGC Query.
 bool SteamServer::setReturnAdditionalPreviews(uint64_t query_handle, bool return_additional_previews) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnAdditionalPreviews");
-	return SteamUGC()->SetReturnAdditionalPreviews((UGCQueryHandle_t)query_handle, return_additional_previews);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnAdditionalPreviews");
+	return SteamGameServerUGC()->SetReturnAdditionalPreviews((UGCQueryHandle_t)query_handle, return_additional_previews);
 }
 
 // Sets whether to return the IDs of the child items of the items on a pending UGC Query.
 bool SteamServer::setReturnChildren(uint64_t query_handle, bool return_children) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnChildren");
-	return SteamUGC()->SetReturnChildren((UGCQueryHandle_t)query_handle, return_children);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnChildren");
+	return SteamGameServerUGC()->SetReturnChildren((UGCQueryHandle_t)query_handle, return_children);
 }
 
 // Sets whether to return any key-value tags for the items on a pending UGC Query.
 bool SteamServer::setReturnKeyValueTags(uint64_t query_handle, bool return_key_value_tags) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnKeyValueTags");
-	return SteamUGC()->SetReturnKeyValueTags((UGCQueryHandle_t)query_handle, return_key_value_tags);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnKeyValueTags");
+	return SteamGameServerUGC()->SetReturnKeyValueTags((UGCQueryHandle_t)query_handle, return_key_value_tags);
 }
 
 // Sets whether to return the full description for the items on a pending UGC Query.
 bool SteamServer::setReturnLongDescription(uint64_t query_handle, bool return_long_description) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnLongDescription");
-	return SteamUGC()->SetReturnLongDescription((UGCQueryHandle_t)query_handle, return_long_description);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnLongDescription");
+	return SteamGameServerUGC()->SetReturnLongDescription((UGCQueryHandle_t)query_handle, return_long_description);
 }
 
 // Sets whether to return the developer specified metadata for the items on a pending UGC Query.
 bool SteamServer::setReturnMetadata(uint64_t query_handle, bool return_metadata) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnMetadata");
-	return SteamUGC()->SetReturnMetadata((UGCQueryHandle_t)query_handle, return_metadata);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnMetadata");
+	return SteamGameServerUGC()->SetReturnMetadata((UGCQueryHandle_t)query_handle, return_metadata);
 }
 
 // Sets whether to only return IDs instead of all the details on a pending UGC Query.
 bool SteamServer::setReturnOnlyIDs(uint64_t query_handle, bool return_only_ids) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnOnlyIDs");
-	return SteamUGC()->SetReturnOnlyIDs((UGCQueryHandle_t)query_handle, return_only_ids);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnOnlyIDs");
+	return SteamGameServerUGC()->SetReturnOnlyIDs((UGCQueryHandle_t)query_handle, return_only_ids);
 }
 
 // Sets whether to return the the playtime stats on a pending UGC Query.
 bool SteamServer::setReturnPlaytimeStats(uint64_t query_handle, uint32 days) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnPlaytimeStats");
-	return SteamUGC()->SetReturnPlaytimeStats((UGCQueryHandle_t)query_handle, days);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnPlaytimeStats");
+	return SteamGameServerUGC()->SetReturnPlaytimeStats((UGCQueryHandle_t)query_handle, days);
 }
 
 // Sets whether to only return the the total number of matching items on a pending UGC Query.
 bool SteamServer::setReturnTotalOnly(uint64_t query_handle, bool return_total_only) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnTotalOnly");
-	return SteamUGC()->SetReturnTotalOnly((UGCQueryHandle_t)query_handle, return_total_only);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setReturnTotalOnly");
+	return SteamGameServerUGC()->SetReturnTotalOnly((UGCQueryHandle_t)query_handle, return_total_only);
 }
 
 // Sets a string to that items need to match in either the title or the description on a pending UGC Query.
 bool SteamServer::setSearchText(uint64_t query_handle, const String &search_text) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setSearchText");
-	return SteamUGC()->SetSearchText((UGCQueryHandle_t)query_handle, search_text.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setSearchText");
+	return SteamGameServerUGC()->SetSearchText((UGCQueryHandle_t)query_handle, search_text.utf8().get_data());
 }
 
 // Set the time range this item was created.
 bool SteamServer::setTimeCreatedDateRange(uint64_t update_handle, uint32 start, uint32 end) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setTimeCreatedDateRange");
-	return SteamUGC()->SetTimeCreatedDateRange((UGCUpdateHandle_t)update_handle, start, end);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setTimeCreatedDateRange");
+	return SteamGameServerUGC()->SetTimeCreatedDateRange((UGCUpdateHandle_t)update_handle, start, end);
 }
 
 // Set the time range this item was updated.
 bool SteamServer::setTimeUpdatedDateRange(uint64_t update_handle, uint32 start, uint32 end) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setTimeUpdatedDateRange");
-	return SteamUGC()->SetTimeUpdatedDateRange((UGCUpdateHandle_t)update_handle, start, end);
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: setTimeUpdatedDateRange");
+	return SteamGameServerUGC()->SetTimeUpdatedDateRange((UGCUpdateHandle_t)update_handle, start, end);
 }
 
 // Allows the user to rate a workshop item up or down.
 void SteamServer::setUserItemVote(uint64_t published_file_id, bool vote_up) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: setUserItemVote");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: setUserItemVote");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->SetUserItemVote(file_id, vote_up);
+	SteamAPICall_t api_call = SteamGameServerUGC()->SetUserItemVote(file_id, vote_up);
 	callResultSetUserItemVote.Set(api_call, this, &SteamServer::set_user_item_vote);
 }
 
 // Show the app's latest Workshop EULA to the user in an overlay window, where they can accept it or not.
 bool SteamServer::showWorkshopEULA() {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: showWorkshopEULA");
-	return SteamUGC()->ShowWorkshopEULA();
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: showWorkshopEULA");
+	return SteamGameServerUGC()->ShowWorkshopEULA();
 }
 
 // Starts the item update process.
 uint64_t SteamServer::startItemUpdate(uint32_t app_id, uint64_t published_file_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: startItemUpdate");
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, 0, "[STEAM SERVER] UGC class not found when calling: startItemUpdate");
 	AppId_t app = (uint32_t)app_id;
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	return SteamUGC()->StartItemUpdate(app, file_id);
+	return SteamGameServerUGC()->StartItemUpdate(app, file_id);
 }
 
 // Start tracking playtime on a set of workshop items.
 void SteamServer::startPlaytimeTracking(Array published_file_ids) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: startPlaytimeTracking");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: startPlaytimeTracking");
 	uint32 file_count = published_file_ids.size();
 	if (file_count > 0) {
 		PublishedFileId_t *file_ids = new PublishedFileId_t[file_count];
 		for (uint32 i = 0; i < file_count; i++) {
 			file_ids[i] = (uint64_t)published_file_ids[i];
 		}
-		SteamAPICall_t api_call = SteamUGC()->StartPlaytimeTracking(file_ids, file_count);
+		SteamAPICall_t api_call = SteamGameServerUGC()->StartPlaytimeTracking(file_ids, file_count);
 		callResultStartPlaytimeTracking.Set(api_call, this, &SteamServer::start_playtime_tracking);
 		delete[] file_ids;
 	}
@@ -3007,7 +3017,7 @@ void SteamServer::startPlaytimeTracking(Array published_file_ids) {
 
 // Stop tracking playtime on a set of workshop items.
 void SteamServer::stopPlaytimeTracking(Array published_file_ids) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: stopPlaytimeTracking");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: stopPlaytimeTracking");
 	uint32 file_count = published_file_ids.size();
 	if (file_count > 0) {
 		PublishedFileId_t *file_ids = new PublishedFileId_t[file_count];
@@ -3015,7 +3025,7 @@ void SteamServer::stopPlaytimeTracking(Array published_file_ids) {
 		for (uint32 i = 0; i < file_count; i++) {
 			file_ids[i] = (uint64_t)published_file_ids[i];
 		}
-		SteamAPICall_t api_call = SteamUGC()->StopPlaytimeTracking(file_ids, file_count);
+		SteamAPICall_t api_call = SteamGameServerUGC()->StopPlaytimeTracking(file_ids, file_count);
 		callResultStopPlaytimeTracking.Set(api_call, this, &SteamServer::stop_playtime_tracking);
 		delete[] file_ids;
 	}
@@ -3023,56 +3033,288 @@ void SteamServer::stopPlaytimeTracking(Array published_file_ids) {
 
 // Stop tracking playtime of all workshop items.
 void SteamServer::stopPlaytimeTrackingForAllItems() {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: stopPlaytimeTrackingForAllItems");
-	SteamAPICall_t api_call = SteamUGC()->StopPlaytimeTrackingForAllItems();
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: stopPlaytimeTrackingForAllItems");
+	SteamAPICall_t api_call = SteamGameServerUGC()->StopPlaytimeTrackingForAllItems();
 	callResultStopPlaytimeTracking.Set(api_call, this, &SteamServer::stop_playtime_tracking);
 }
 
 // Uploads the changes made to an item to the Steam Workshop; to be called after setting your changes.
 void SteamServer::submitItemUpdate(uint64_t update_handle, const String &change_note) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: submitItemUpdate");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: submitItemUpdate");
 	SteamAPICall_t api_call;
 	if (change_note.length() == 0) {
-		api_call = SteamUGC()->SubmitItemUpdate((UGCUpdateHandle_t)update_handle, NULL);
+		api_call = SteamGameServerUGC()->SubmitItemUpdate((UGCUpdateHandle_t)update_handle, NULL);
 	}
 	else {
-		api_call = SteamUGC()->SubmitItemUpdate((UGCUpdateHandle_t)update_handle, change_note.utf8().get_data());
+		api_call = SteamGameServerUGC()->SubmitItemUpdate((UGCUpdateHandle_t)update_handle, change_note.utf8().get_data());
 	}
 	callResultItemUpdate.Set(api_call, this, &SteamServer::item_updated);
 }
 
 // Subscribe to a workshop item. It will be downloaded and installed as soon as possible.
 void SteamServer::subscribeItem(uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: subscribeItem");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: subscribeItem");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->SubscribeItem(file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->SubscribeItem(file_id);
 	callResultSubscribeItem.Set(api_call, this, &SteamServer::subscribe_item);
 }
 
 // SuspendDownloads( true ) will suspend all workshop downloads until SuspendDownloads( false ) is called or the game ends.
 void SteamServer::suspendDownloads(bool suspend) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: suspendDownloads");
-	SteamUGC()->SuspendDownloads(suspend);
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: suspendDownloads");
+	SteamGameServerUGC()->SuspendDownloads(suspend);
 }
 
 // Unsubscribe from a workshop item. This will result in the item being removed after the game quits.
 void SteamServer::unsubscribeItem(uint64_t published_file_id) {
-	ERR_FAIL_COND_MSG(SteamUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: unsubscribeItem");
+	ERR_FAIL_COND_MSG(SteamGameServerUGC() == NULL, "[STEAM SERVER] UGC class not found when calling: unsubscribeItem");
 	PublishedFileId_t file_id = (uint64_t)published_file_id;
-	SteamAPICall_t api_call = SteamUGC()->UnsubscribeItem(file_id);
+	SteamAPICall_t api_call = SteamGameServerUGC()->UnsubscribeItem(file_id);
 	callResultUnsubscribeItem.Set(api_call, this, &SteamServer::unsubscribe_item);
 }
 
 // Updates an existing additional preview file for the item.
 bool SteamServer::updateItemPreviewFile(uint64_t update_handle, uint32 index, const String &preview_file) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: updateItemPreviewFile");
-	return SteamUGC()->UpdateItemPreviewFile((UGCUpdateHandle_t)update_handle, index, preview_file.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: updateItemPreviewFile");
+	return SteamGameServerUGC()->UpdateItemPreviewFile((UGCUpdateHandle_t)update_handle, index, preview_file.utf8().get_data());
 }
 
 // Updates an additional video preview from YouTube for the item.
 bool SteamServer::updateItemPreviewVideo(uint64_t update_handle, uint32 index, const String &video_id) {
-	ERR_FAIL_COND_V_MSG(SteamUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: updateItemPreviewVideo");
-	return SteamUGC()->UpdateItemPreviewVideo((UGCUpdateHandle_t)update_handle, index, video_id.utf8().get_data());
+	ERR_FAIL_COND_V_MSG(SteamGameServerUGC() == NULL, false, "[STEAM SERVER] UGC class not found when calling: updateItemPreviewVideo");
+	return SteamGameServerUGC()->UpdateItemPreviewVideo((UGCUpdateHandle_t)update_handle, index, video_id.utf8().get_data());
+}
+
+
+///// UTILS
+
+// Dismisses the floating keyboard.
+bool SteamServer::dismissFloatingGamepadTextInput() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: dismissFloatingGamepadTextInput");
+	return SteamGameServerUtils()->DismissFloatingGamepadTextInput();
+}
+
+// Dismisses the full-screen text input dialog.
+bool SteamServer::dismissGamepadTextInput() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: dismissGamepadTextInput");
+	return SteamGameServerUtils()->DismissGamepadTextInput();
+}
+
+// Filters the provided input message and places the filtered result into pchOutFilteredText.
+String SteamServer::filterText(TextFilteringContext context, uint64_t steam_id, const String &message) {
+	String new_message = "";
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, new_message, "[STEAM SERVER] Utils class not found when calling: filterText");
+	auto utf8_input = message.utf8();
+	char *filtered = new char[utf8_input.length() + 1]{};
+	CSteamID source_id = (uint64)steam_id;
+	SteamGameServerUtils()->FilterText((ETextFilteringContext)context, source_id, utf8_input.get_data(), filtered, utf8_input.length() + 1);
+	new_message = filtered;
+	delete[] filtered;
+	return new_message;
+}
+
+// Used to get the failure reason of a call result. The primary usage for this function is debugging. The failure reasons are
+// typically out of your control and tend to not be very important. Just keep retrying your API Call until it works.
+String SteamServer::getAPICallFailureReason() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, "", "[STEAM SERVER] Utils class not found when calling: getAPICallFailureReason");
+	int failure = SteamGameServerUtils()->GetAPICallFailureReason(api_handle);
+	if (failure == k_ESteamAPICallFailureSteamGone) {
+		return "The local Steam process has stopped responding, it may have been forcefully closed or is frozen.";
+	}
+	else if (failure == k_ESteamAPICallFailureNetworkFailure) {
+		return "The network connection to the Steam servers has been lost, or was already broken.";
+	}
+	else if (failure == k_ESteamAPICallFailureInvalidHandle) {
+		return "The SteamAPICall_t handle passed in no longer exists.";
+	}
+	else if (failure == k_ESteamAPICallFailureMismatchedCallback) {
+		return "GetAPICallResult was called with the wrong callback type for this API call.";
+	}
+	else {
+		return "No failure.";
+	}
+}
+
+// Get the Steam ID of the running application/game.
+uint32_t SteamServer::getAppID() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getAppID");
+	return SteamGameServerUtils()->GetAppID();
+}
+
+// Get the amount of battery power, clearly for laptops.
+int SteamServer::getCurrentBatteryPower() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getCurrentBatteryPower");
+	return SteamGameServerUtils()->GetCurrentBatteryPower();
+}
+
+// Gets the image bytes from an image handle.
+Dictionary SteamServer::getImageRGBA(int image) {
+	Dictionary image_data;
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, image_data, "[STEAM SERVER] Utils class not found when calling: getImageRGBA");
+	uint32 width;
+	uint32 height;
+	image_data["success"] = SteamGameServerUtils()->GetImageSize(image, &width, &height);
+	if (image_data["success"]) {
+		PackedByteArray data;
+		data.resize(width * height * 4);
+		if (SteamGameServerUtils()->GetImageRGBA(image, data.ptrw(), data.size())) {
+			image_data["buffer"] = data;
+		}
+	}
+	return image_data;
+}
+
+// Gets the size of a Steam image handle.
+Dictionary SteamServer::getImageSize(int image) {
+	Dictionary image_data;
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, image_data, "[STEAM SERVER] Utils class not found when calling: getImageSize");
+	uint32 width;
+	uint32 height;
+	image_data["success"] = SteamGameServerUtils()->GetImageSize(image, &width, &height);
+	image_data["width"] = width;
+	image_data["height"] = height;
+	return image_data;
+}
+
+// Returns the number of IPC calls made since the last time this function was called.
+uint32 SteamServer::getIPCCallCount() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getIPCCallCount");
+	return SteamGameServerUtils()->GetIPCCallCount();
+}
+
+// Get the user's country by IP.
+String SteamServer::getIPCountry() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, "", "[STEAM SERVER] Utils class not found when calling: getIPCountry");
+	return SteamGameServerUtils()->GetIPCountry();
+}
+
+// Return amount of time, in seconds, user has spent in this session.
+int SteamServer::getSecondsSinceAppActive() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getSecondsSinceAppActive");
+	return SteamGameServerUtils()->GetSecondsSinceAppActive();
+}
+
+// Returns the number of seconds since the user last moved the mouse.
+int SteamServer::getSecondsSinceComputerActive() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getSecondsSinceComputerActive");
+	return SteamGameServerUtils()->GetSecondsSinceComputerActive();
+}
+
+// Get the actual time.
+int SteamServer::getServerRealTime() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, 0, "[STEAM SERVER] Utils class not found when calling: getServerRealTime");
+	return SteamGameServerUtils()->GetServerRealTime();
+}
+
+// Get the Steam user interface language.
+String SteamServer::getSteamUILanguage() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, "", "[STEAM SERVER] Utils class not found when calling: getSteamUILanguage");
+	return SteamGameServerUtils()->GetSteamUILanguage();
+}
+
+// Initializes text filtering. Returns false if filtering is unavailable for the language the user is currently running in. If the
+// language is unsupported, the FilterText API will act as a passthrough.
+bool SteamServer::initFilterText() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: initFilterText");
+	return SteamGameServerUtils()->InitFilterText();
+}
+
+// Checks if an API Call is completed. Provides the backend of the CallResult wrapper.
+Dictionary SteamServer::isAPICallCompleted() {
+	Dictionary completed;
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, completed, "[STEAM SERVER] Utils class not found when calling: isAPICallCompleted");
+	bool failed = false;
+	completed["completed"] = SteamGameServerUtils()->IsAPICallCompleted(api_handle, &failed);
+	completed["failed"] = failed;
+	return completed;
+}
+
+// Returns true/false if Steam overlay is enabled.
+bool SteamServer::isOverlayEnabled() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isOverlayEnabled");
+	return SteamGameServerUtils()->IsOverlayEnabled();
+}
+
+// Returns whether the current launcher is a Steam China launcher. You can cause the client to behave as the Steam China launcher
+// by adding -dev -steamchina to the command line when running Steam.
+bool SteamServer::isSteamChinaLauncher() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isSteamChinaLauncher");
+	return SteamGameServerUtils()->IsSteamChinaLauncher();
+}
+
+// Returns true if Steam & the Steam Overlay are running in Big Picture mode.
+bool SteamServer::isSteamInBigPictureMode() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isSteamInBigPictureMode");
+	return SteamGameServerUtils()->IsSteamInBigPictureMode();
+}
+
+// Is Steam running in VR?
+bool SteamServer::isSteamRunningInVR() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isSteamRunningInVR");
+	return SteamGameServerUtils()->IsSteamRunningInVR();
+}
+
+// Returns true if currently running on the Steam Deck device
+bool SteamServer::isSteamRunningOnSteamDeck() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isSteamRunningOnSteamDeck");
+	return SteamGameServerUtils()->IsSteamRunningOnSteamDeck();
+}
+
+// Checks if the HMD view will be streamed via Steam In-Home Streaming.
+bool SteamServer::isVRHeadsetStreamingEnabled() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: isVRHeadsetStreamingEnabled");
+	return SteamGameServerUtils()->IsVRHeadsetStreamingEnabled();
+}
+
+// Checks if the Overlay needs a present. Only required if using event driven render updates.
+bool SteamServer::overlayNeedsPresent() {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: overlayNeedsPresent");
+	return SteamGameServerUtils()->BOverlayNeedsPresent();
+}
+
+// Activates the Big Picture text input dialog which only supports gamepad input.
+bool SteamServer::showGamepadTextInput(GamepadTextInputMode input_mode, GamepadTextInputLineMode line_input_mode, const String &description, uint32 max_text, const String &preset_text) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: showGamepadTextInput");
+	return SteamGameServerUtils()->ShowGamepadTextInput((EGamepadTextInputMode)input_mode, (EGamepadTextInputLineMode)line_input_mode, description.utf8().get_data(), max_text, preset_text.utf8().get_data());
+}
+
+// Opens a floating keyboard over the game content and sends OS keyboard keys directly to the game.
+// The text field position is specified in pixels relative the origin of the game window and is used to position the floating
+// keyboard in a way that doesn't cover the text field
+bool SteamServer::showFloatingGamepadTextInput(FloatingGamepadTextInputMode input_mode, int text_field_x_position, int text_field_y_position, int text_field_width, int text_field_height) {
+	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, false, "[STEAM SERVER] Utils class not found when calling: showFloatingGamepadTextInput");
+	return SteamGameServerUtils()->ShowFloatingGamepadTextInput((EFloatingGamepadTextInputMode)input_mode, text_field_x_position, text_field_y_position, text_field_width, text_field_height);
+}
+
+// In game launchers that don't have controller support you can call this to have Steam Input translate the controller input into
+// mouse/kb to navigate the launcher
+void SteamServer::setGameLauncherMode(bool mode) {
+	ERR_FAIL_COND_MSG(SteamGameServerUtils() == NULL, "[STEAM SERVER] Utils class not found when calling: setGameLauncherMode");
+	SteamGameServerUtils()->SetGameLauncherMode(mode);
+}
+
+// Sets the inset of the overlay notification from the corner specified by SetOverlayNotificationPosition.
+void SteamServer::setOverlayNotificationInset(int horizontal, int vertical) {
+	ERR_FAIL_COND_MSG(SteamGameServerUtils() == NULL, "[STEAM SERVER] Utils class not found when calling: setOverlayNotificationInset");
+	SteamGameServerUtils()->SetOverlayNotificationInset(horizontal, vertical);
+}
+
+// Set the position where overlay shows notifications.
+void SteamServer::setOverlayNotificationPosition(int pos) {
+	ERR_FAIL_COND_MSG(SteamGameServerUtils() == NULL, "[STEAM SERVER] Utils class not found when calling: setOverlayNotificationPosition");
+	SteamGameServerUtils()->SetOverlayNotificationPosition(ENotificationPosition(pos));
+}
+
+// Set whether the HMD content will be streamed via Steam In-Home Streaming.
+void SteamServer::setVRHeadsetStreamingEnabled(bool enabled) {
+	ERR_FAIL_COND_MSG(SteamGameServerUtils() == NULL, "[STEAM SERVER] Utils class not found when calling: setVRHeadsetStreamingEnabled");
+	SteamGameServerUtils()->SetVRHeadsetStreamingEnabled(enabled);
+}
+
+// Ask SteamUI to create and render its OpenVR dashboard.
+void SteamServer::startVRDashboard() {
+	ERR_FAIL_COND_MSG(SteamGameServerUtils() == NULL, "[STEAM SERVER] Utils class not found when calling: startVRDashboard");
+	SteamGameServerUtils()->StartVRDashboard();
 }
 
 
@@ -3159,20 +3401,22 @@ void SteamServer::validate_auth_ticket_response(ValidateAuthTicketResponse_t *au
 	emit_signal("validate_auth_ticket_response", steam_id, response, owner_id);
 }
 
+
 ///// GAME SERVER STATS
 
 // Result of a request to store the user stats.
-void SteamServer::stats_stored(GSStatsStored_t *callData) {
-	EResult result = callData->m_eResult;
-	uint64_t steam_id = callData->m_steamIDUser.ConvertToUint64();
+void SteamServer::stats_stored(GSStatsStored_t *call_data) {
+	EResult result = call_data->m_eResult;
+	uint64_t steam_id = call_data->m_steamIDUser.ConvertToUint64();
 	emit_signal("stats_stored", result, steam_id);
 }
 
 // Callback indicating that a user's stats have been unloaded.
-void SteamServer::stats_unloaded(GSStatsUnloaded_t *callData) {
-	uint64_t steam_id = callData->m_steamIDUser.ConvertToUint64();
+void SteamServer::stats_unloaded(GSStatsUnloaded_t *call_data) {
+	uint64_t steam_id = call_data->m_steamIDUser.ConvertToUint64();
 	emit_signal("stats_unloaded", steam_id);
 }
+
 
 ///// HTTP 
 
@@ -3202,6 +3446,7 @@ void SteamServer::http_request_headers_received(HTTPRequestHeadersReceived_t* ca
 	emit_signal("http_request_headers_received", cookie_handle, context_value);
 }
 
+
 ///// INVENTORY
 
 // This callback is triggered whenever item definitions have been updated, which could be in response to LoadItemDefinitions or
@@ -3212,9 +3457,9 @@ void SteamServer::inventory_definition_update(SteamInventoryDefinitionUpdate_t *
 	// Set the array size variable
 	uint32 size = 0;
 	// Get the item defition IDs
-	if (SteamInventory()->GetItemDefinitionIDs(NULL, &size)) {
+	if (SteamGameServerInventory()->GetItemDefinitionIDs(NULL, &size)) {
 		SteamItemDef_t *id_array = new SteamItemDef_t[size];
-		if (SteamInventory()->GetItemDefinitionIDs(id_array, &size)) {
+		if (SteamGameServerInventory()->GetItemDefinitionIDs(id_array, &size)) {
 			// Loop through the temporary array and populate the return array
 			for (uint32 i = 0; i < size; i++) {
 				definitions.append(id_array[i]);
@@ -3385,15 +3630,72 @@ void SteamServer::user_subscribed_items_list_changed(UserSubscribedItemsListChan
 }
 
 
+///// UTILS
+
+// Called when the big picture gamepad text input has been closed.
+void SteamServer::gamepad_text_input_dismissed(GamepadTextInputDismissed_t *call_data) {
+	bool was_submitted = call_data->m_bSubmitted;
+	const uint32 buffer_length = 1024;
+	char text[buffer_length + 1]{};
+	uint32 length = 0;
+	uint32_t app_id = call_data->m_unAppID;
+	if (was_submitted) {
+		SteamUtils()->GetEnteredGamepadTextInput(text, buffer_length);
+		length = SteamUtils()->GetEnteredGamepadTextLength();
+	}
+	emit_signal("gamepad_text_input_dismissed", was_submitted, String::utf8(text, (int)length), app_id);
+}
+
+// Called when the country of the user changed. The country should be updated with getIPCountry.
+void SteamServer::ip_country(IPCountry_t *call_data) {
+	emit_signal("ip_country");
+}
+
+// Called when running on a laptop and less than 10 minutes of battery is left, and then fires then every minute afterwards.
+void SteamServer::low_power(LowBatteryPower_t *time_left) {
+	uint8 power = time_left->m_nMinutesBatteryLeft;
+	emit_signal("low_power", power);
+}
+
+// Called when a SteamAPICall_t has completed (or failed)
+void SteamServer::steam_api_call_completed(SteamAPICallCompleted_t *call_data) {
+	uint64_t async_call = call_data->m_hAsyncCall;
+	int callback = call_data->m_iCallback;
+	uint32 parameter = call_data->m_cubParam;
+	emit_signal("steam_api_call_completed", async_call, callback, parameter);
+}
+
+// Called when Steam wants to shutdown.
+void SteamServer::steam_shutdown(SteamShutdown_t *call_data) {
+	emit_signal("steam_shutdown");
+}
+
+// Sent after the device returns from sleep/suspend mode.
+void SteamServer::app_resuming_from_suspend(AppResumingFromSuspend_t *call_data) {
+	emit_signal("app_resuming_from_suspend");
+}
+
+// Sent after the device returns from sleep/suspend mode.
+void SteamServer::floating_gamepad_text_input_dismissed(FloatingGamepadTextInputDismissed_t *call_data) {
+	emit_signal("floating_gamepad_text_input_dismissed");
+}
+
+// The text filtering dictionary has changed, obviously.
+void SteamServer::filter_text_dictionary_changed(FilterTextDictionaryChanged_t *call_data) {
+	int language = call_data->m_eLanguage;
+	emit_signal("filter_text_dictionary_changed", language);
+}
+
+
 ///// SIGNALS / CALL RESULTS
 
 ///// GAME SERVER
 
 // Result when getting the latests stats and achievements for a user from the server.
-void SteamServer::stats_received(GSStatsReceived_t *callData, bool io_failure) {
+void SteamServer::stats_received(GSStatsReceived_t *call_data, bool io_failure) {
 	ERR_FAIL_COND_MSG(io_failure, "[STEAM SERVER] stats_received signal failed internally");
-	EResult result = callData->m_eResult;
-	uint64_t steam_id = callData->m_steamIDUser.ConvertToUint64();
+	EResult result = call_data->m_eResult;
+	uint64_t steam_id = call_data->m_steamIDUser.ConvertToUint64();
 	emit_signal("stats_received", result, steam_id);
 }
 
@@ -3411,7 +3713,7 @@ void SteamServer::inventory_eligible_promo_item(SteamInventoryEligiblePromoItemD
 	SteamItemDef_t *id_array = new SteamItemDef_t[eligible];
 	uint32 array_size = (int)eligible;
 
-	if (SteamInventory()->GetEligiblePromoItemDefinitionIDs(steam_id, id_array, &array_size)) {
+	if (SteamGameServerInventory()->GetEligiblePromoItemDefinitionIDs(steam_id, id_array, &array_size)) {
 		for (int i = 0; i < eligible; i++) {
 			definitions.append(id_array[i]);
 		}
@@ -3661,6 +3963,15 @@ void SteamServer::workshop_eula_status(WorkshopEULAStatus_t *call_data, bool io_
 	eula_data["accepted"] = call_data->m_bAccepted; // bool
 	eula_data["needs_action"] = call_data->m_bNeedsAction; // bool
 	emit_signal("workshop_eula_status", result, app_id, eula_data);
+}
+
+
+///// UTILS
+
+// CallResult for checkFileSignature.
+void SteamServer::check_file_signature(CheckFileSignature_t *call_data, bool io_failure) {
+	ERR_FAIL_COND_MSG(io_failure, "[STEAM SERVER] check_file_signature signal failed internally");
+	emit_signal("check_file_signature", (CheckFileSignature)call_data->m_eCheckFileSignature);
 }
 
 
@@ -3979,8 +4290,40 @@ void SteamServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setTimeCreatedDateRange", "update_handle", "start", "end"), &SteamServer::setTimeCreatedDateRange);
 	ClassDB::bind_method(D_METHOD("setTimeUpdatedDateRange", "update_handle", "start", "end"), &SteamServer::setTimeUpdatedDateRange);
 
+	// UTILS
+	ClassDB::bind_method(D_METHOD("dismissFloatingGamepadTextInput"), &SteamServer::dismissFloatingGamepadTextInput);
+	ClassDB::bind_method(D_METHOD("dismissGamepadTextInput"), &SteamServer::dismissGamepadTextInput);
+	ClassDB::bind_method(D_METHOD("filterText", "context", "steam_id", "message"), &SteamServer::filterText);
+	ClassDB::bind_method(D_METHOD("getAPICallFailureReason"), &SteamServer::getAPICallFailureReason);
+	ClassDB::bind_method(D_METHOD("getAppID"), &SteamServer::getAppID);
+	ClassDB::bind_method(D_METHOD("getCurrentBatteryPower"), &SteamServer::getCurrentBatteryPower);
+	ClassDB::bind_method(D_METHOD("getImageRGBA", "image"), &SteamServer::getImageRGBA);
+	ClassDB::bind_method(D_METHOD("getImageSize", "image"), &SteamServer::getImageSize);
+	ClassDB::bind_method(D_METHOD("getIPCCallCount"), &SteamServer::getIPCCallCount);
+	ClassDB::bind_method(D_METHOD("getIPCountry"), &SteamServer::getIPCountry);
+	ClassDB::bind_method(D_METHOD("getSecondsSinceAppActive"), &SteamServer::getSecondsSinceAppActive);
+	ClassDB::bind_method(D_METHOD("getSecondsSinceComputerActive"), &SteamServer::getSecondsSinceComputerActive);
+	ClassDB::bind_method(D_METHOD("getServerRealTime"), &SteamServer::getServerRealTime);
+	ClassDB::bind_method(D_METHOD("getSteamUILanguage"), &SteamServer::getSteamUILanguage);
+	ClassDB::bind_method(D_METHOD("initFilterText"), &SteamServer::initFilterText);
+	ClassDB::bind_method(D_METHOD("isAPICallCompleted"), &SteamServer::isAPICallCompleted);
+	ClassDB::bind_method(D_METHOD("isOverlayEnabled"), &SteamServer::isOverlayEnabled);
+	ClassDB::bind_method(D_METHOD("isSteamChinaLauncher"), &SteamServer::isSteamChinaLauncher);
+	ClassDB::bind_method(D_METHOD("isSteamInBigPictureMode"), &SteamServer::isSteamInBigPictureMode);
+	ClassDB::bind_method(D_METHOD("isSteamRunningInVR"), &SteamServer::isSteamRunningInVR);
+	ClassDB::bind_method(D_METHOD("isSteamRunningOnSteamDeck"), &SteamServer::isSteamRunningOnSteamDeck);
+	ClassDB::bind_method(D_METHOD("isVRHeadsetStreamingEnabled"), &SteamServer::isVRHeadsetStreamingEnabled);
+	ClassDB::bind_method(D_METHOD("overlayNeedsPresent"), &SteamServer::overlayNeedsPresent);
+	ClassDB::bind_method(D_METHOD("setGameLauncherMode", "mode"), &SteamServer::setGameLauncherMode);
+	ClassDB::bind_method(D_METHOD("setOverlayNotificationInset", "horizontal", "vertical"), &SteamServer::setOverlayNotificationInset);
+	ClassDB::bind_method(D_METHOD("setOverlayNotificationPosition", "pos"), &SteamServer::setOverlayNotificationPosition);
+	ClassDB::bind_method(D_METHOD("setVRHeadsetStreamingEnabled", "enabled"), &SteamServer::setVRHeadsetStreamingEnabled);
+	ClassDB::bind_method(D_METHOD("showFloatingGamepadTextInput", "input_mode", "text_field_x_position", "text_field_y_position", "text_field_width", "text_field_height"), &SteamServer::showFloatingGamepadTextInput);
+	ClassDB::bind_method(D_METHOD("showGamepadTextInput", "input_mode", "line_input_mode", "description", "max_text", "preset_text"), &SteamServer::showGamepadTextInput);
+	ClassDB::bind_method(D_METHOD("startVRDashboard"), &SteamServer::startVRDashboard);
 
-	///// SIGNALS / CALLBACKs
+
+	///// SIGNALS / CALLBACKS
 
 	// GAME SERVER
 	ADD_SIGNAL(MethodInfo("associate_clan", PropertyInfo(Variant::INT, "result")));
@@ -4057,6 +4400,17 @@ void SteamServer::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("user_favorite_items_list_changed", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "file_id"), PropertyInfo(Variant::BOOL, "was_add_request")));
 	ADD_SIGNAL(MethodInfo("workshop_eula_status", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "app_id"), PropertyInfo(Variant::DICTIONARY, "eula_data")));
 	ADD_SIGNAL(MethodInfo("user_subscribed_items_list_changed", PropertyInfo(Variant::INT, "app_id")));
+
+	// UTILS
+	ADD_SIGNAL(MethodInfo("check_file_signature", PropertyInfo(Variant::STRING, "signature")));
+	ADD_SIGNAL(MethodInfo("gamepad_text_input_dismissed", PropertyInfo(Variant::BOOL, "submitted"), PropertyInfo(Variant::STRING, "entered_text"), PropertyInfo(Variant::INT, "app_id")));
+	ADD_SIGNAL(MethodInfo("ip_country"));
+	ADD_SIGNAL(MethodInfo("low_power", PropertyInfo(Variant::INT, "power")));
+	ADD_SIGNAL(MethodInfo("steam_api_call_completed", PropertyInfo(Variant::INT, "async_call"), PropertyInfo(Variant::INT, "callback"), PropertyInfo(Variant::INT, "parameter")));
+	ADD_SIGNAL(MethodInfo("steam_shutdown"));
+	ADD_SIGNAL(MethodInfo("app_resuming_from_suspend"));
+	ADD_SIGNAL(MethodInfo("floating_gamepad_text_input_dismissed"));
+	ADD_SIGNAL(MethodInfo("filter_text_dictionary_changed", PropertyInfo(Variant::INT, "language")));
 
 
 	///// PROPERTIES
@@ -4155,6 +4509,13 @@ void SteamServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(ACCOUNT_TYPE_ANON_USER);
 	BIND_ENUM_CONSTANT(ACCOUNT_TYPE_MAX);
 
+	// APICallFailure Enums
+	BIND_ENUM_CONSTANT(STEAM_API_CALL_FAILURE_NONE);
+	BIND_ENUM_CONSTANT(STEAM_API_CALL_FAILURE_STEAM_GONE);
+	BIND_ENUM_CONSTANT(STEAM_API_CALL_FAILURE_NETWORK_FAILURE);
+	BIND_ENUM_CONSTANT(STEAM_API_CALL_FAILURE_INVALID_HANDLE);
+	BIND_ENUM_CONSTANT(STEAM_API_CALL_FAILURE_MISMATCHED_CALLBACK);
+
 	// AuthSessionResponse Enums
 	BIND_ENUM_CONSTANT(AUTH_SESSION_RESPONSE_OK);
 	BIND_ENUM_CONSTANT(AUTH_SESSION_RESPONSE_USER_NOT_CONNECTED_TO_STEAM);
@@ -4175,6 +4536,13 @@ void SteamServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(BEGIN_AUTH_SESSION_RESULT_INVALID_VERSION);
 	BIND_ENUM_CONSTANT(BEGIN_AUTH_SESSION_RESULT_GAME_MISMATCH);
 	BIND_ENUM_CONSTANT(BEGIN_AUTH_SESSION_RESULT_EXPIRED_TICKET);
+
+	// CheckFileSignature Enums
+	BIND_ENUM_CONSTANT(CHECK_FILE_SIGNATURE_INVALID_SIGNATURE);
+	BIND_ENUM_CONSTANT(CHECK_FILE_SIGNATURE_VALID_SIGNATURE);
+	BIND_ENUM_CONSTANT(CHECK_FILE_SIGNATURE_FILE_NOT_FOUND);
+	BIND_ENUM_CONSTANT(CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_APP);
+	BIND_ENUM_CONSTANT(CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_FILE);
 
 	// DenyReason Enums
 	BIND_ENUM_CONSTANT(DENY_INVALID);
@@ -4199,11 +4567,25 @@ void SteamServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(FILE_PATH_TYPE_ABSOLUTE);
 	BIND_ENUM_CONSTANT(FILE_PATH_TYPE_API_FILENAME);
 
+	// FloatingGamepadTextInputMode Enums
+	BIND_ENUM_CONSTANT(FLOATING_GAMEPAD_TEXT_INPUT_MODE_SINGLE_LINE);
+	BIND_ENUM_CONSTANT(FLOATING_GAMEPAD_TEXT_INPUT_MODE_MULTIPLE_LINES);
+	BIND_ENUM_CONSTANT(FLOATING_GAMEPAD_TEXT_INPUT_MODE_EMAIL);
+	BIND_ENUM_CONSTANT(FLOATING_GAMEPAD_TEXT_INPUT_MODE_NUMERIC);
+
 	// GameIDType Enums
 	BIND_ENUM_CONSTANT(GAME_TYPE_APP);
 	BIND_ENUM_CONSTANT(GAME_TYPE_GAME_MOD);
 	BIND_ENUM_CONSTANT(GAME_TYPE_SHORTCUT);
 	BIND_ENUM_CONSTANT(GAME_TYPE_P2P);
+
+	// GamepadTextInputLineMode Enums
+	BIND_ENUM_CONSTANT(GAMEPAD_TEXT_INPUT_LINE_MODE_SINGLE_LINE);
+	BIND_ENUM_CONSTANT(GAMEPAD_TEXT_INPUT_LINE_MODE_MULTIPLE_LINES);
+
+	// GamepadTextInputMode Enums
+	BIND_ENUM_CONSTANT(GAMEPAD_TEXT_INPUT_MODE_NORMAL);
+	BIND_ENUM_CONSTANT(GAMEPAD_TEXT_INPUT_MODE_PASSWORD);
 
 	// HTTPMethod Enums
 	BIND_ENUM_CONSTANT(HTTP_METHOD_INVALID);
@@ -4489,9 +4871,6 @@ void SteamServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(IDENTITY_TYPE_UNKNOWN_TYPE);
 	BIND_ENUM_CONSTANT(IDENTITY_TYPE_XBOX_PAIRWISE);
 	BIND_ENUM_CONSTANT(IDENTITY_TYPE_SONY_PSN);
-//	BIND_ENUM_CONSTANT(IDENTITY_TYPE_NINTENDO);
-//	BIND_ENUM_CONSTANT(IDENTITY_TYPE_EPIC_GS);
-//	BIND_ENUM_CONSTANT(IDENTITY_TYPE_WEGAME);
 	BIND_ENUM_CONSTANT(IDENTITY_TYPE_FORCE_32BIT);
 
 	// NetworkingSocketsDebugOutputType Enums
@@ -4698,6 +5077,12 @@ void SteamServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(STEAM_API_INIT_RESULT_FAILED_GENERIC);
 	BIND_ENUM_CONSTANT(STEAM_API_INIT_RESULT_NO_STEAM_CLIENT);
 	BIND_ENUM_CONSTANT(STEAM_API_INIT_RESULT_VERSION_MISMATCH);
+
+	// TextFilteringContext Enums
+	BIND_ENUM_CONSTANT(TEXT_FILTERING_CONTEXT_UNKNOWN);
+	BIND_ENUM_CONSTANT(TEXT_FILTERING_CONTEXT_GAME_CONTENT);
+	BIND_ENUM_CONSTANT(TEXT_FILTERING_CONTEXT_CHAT);
+	BIND_ENUM_CONSTANT(TEXT_FILTERING_CONTEXT_NAME);
 
 	// UGCContentDescriptorID Enums
 	BIND_ENUM_CONSTANT(UGC_CONTENT_DESCRIPTOR_NUDITY_OR_SEXUAL_CONTENT);

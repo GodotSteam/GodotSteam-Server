@@ -357,6 +357,38 @@ public:
 	bool setTimeCreatedDateRange(uint64_t update_handle, uint32 start, uint32 end);
 	bool setTimeUpdatedDateRange(uint64_t update_handle, uint32 start, uint32 end);
 
+	// Utils
+	bool dismissFloatingGamepadTextInput();
+	bool dismissGamepadTextInput();
+	String filterText(TextFilteringContext context, uint64_t steam_id, const String &message);
+	String getAPICallFailureReason();
+	uint32_t getAppID();
+	int getCurrentBatteryPower();
+	Dictionary getImageRGBA(int image);
+	Dictionary getImageSize(int image);
+	uint32 getIPCCallCount();
+	String getIPCountry();
+	int getSecondsSinceAppActive();
+	int getSecondsSinceComputerActive();
+	int getServerRealTime();
+	String getSteamUILanguage();
+	bool initFilterText();
+	Dictionary isAPICallCompleted();
+	bool isOverlayEnabled();
+	bool isSteamChinaLauncher();
+	bool isSteamInBigPictureMode();
+	bool isSteamRunningInVR();
+	bool isSteamRunningOnSteamDeck();
+	bool isVRHeadsetStreamingEnabled();
+	bool overlayNeedsPresent();
+	void setGameLauncherMode(bool mode);
+	void setOverlayNotificationInset(int horizontal, int vertical);
+	void setOverlayNotificationPosition(int pos);
+	void setVRHeadsetStreamingEnabled(bool enabled);
+	bool showFloatingGamepadTextInput(FloatingGamepadTextInputMode input_mode, int text_field_x_position, int text_field_y_position, int text_field_width, int text_field_height);
+	bool showGamepadTextInput(GamepadTextInputMode input_mode, GamepadTextInputLineMode line_input_mode, const String &description, uint32 max_text, const String &preset_text);
+	void startVRDashboard();
+
 
 	// PROPERTIES
 	// Inventory
@@ -390,6 +422,9 @@ private:
 //	SteamDatagramHostedAddress hosted_address;
 //	PackedByteArray routing_blob;
 //	SteamDatagramRelayAuthTicket relay_auth_ticket;
+
+	// Utils
+	uint64_t api_handle = 0;
 
 	// Run the Steamworks server API callbacks
 	void run_callbacks(){
@@ -448,6 +483,16 @@ private:
 	STEAM_GAMESERVER_CALLBACK(SteamServer, item_downloaded, DownloadItemResult_t, callbackItemDownloaded);
 	STEAM_GAMESERVER_CALLBACK(SteamServer, item_installed, ItemInstalled_t, callbackItemInstalled);
 	STEAM_GAMESERVER_CALLBACK(SteamServer, user_subscribed_items_list_changed, UserSubscribedItemsListChanged_t, callbackUserSubscribedItemsListChanged);
+
+	// Utils
+	STEAM_CALLBACK(SteamServer, gamepad_text_input_dismissed, GamepadTextInputDismissed_t, callbackGamepadTextInputDismissed);
+	STEAM_CALLBACK(SteamServer, ip_country, IPCountry_t, callbackIPCountry);
+	STEAM_CALLBACK(SteamServer, low_power, LowBatteryPower_t, callbackLowPower);
+	STEAM_CALLBACK(SteamServer, steam_api_call_completed, SteamAPICallCompleted_t, callbackSteamAPICallCompleted);
+	STEAM_CALLBACK(SteamServer, steam_shutdown, SteamShutdown_t, callbackSteamShutdown);
+	STEAM_CALLBACK(SteamServer, app_resuming_from_suspend, AppResumingFromSuspend_t, callbackAppResumingFromSuspend);
+	STEAM_CALLBACK(SteamServer, floating_gamepad_text_input_dismissed, FloatingGamepadTextInputDismissed_t, callbackFloatingGamepadTextInputDismissed);
+	STEAM_CALLBACK(SteamServer, filter_text_dictionary_changed, FilterTextDictionaryChanged_t, callbackFilterTextDictionaryChanged);
 
 
 	// STEAM CALL RESULTS
@@ -508,19 +553,29 @@ private:
 	void user_favorite_items_list_changed(UserFavoriteItemsListChanged_t *call_data, bool io_failure);
 	CCallResult<SteamServer, WorkshopEULAStatus_t> callResultWorkshopEULAStatus;
 	void workshop_eula_status(WorkshopEULAStatus_t *call_data, bool io_failure);
+
+	// Utils
+	CCallResult<SteamServer, CheckFileSignature_t> callResultCheckFileSignature;
+	void check_file_signature(CheckFileSignature_t *call_data, bool io_failure);
 };
 
 
 VARIANT_ENUM_CAST(AccountType);
+VARIANT_ENUM_CAST(APICallFailure);
 VARIANT_ENUM_CAST(AuthSessionResponse);
 
 VARIANT_ENUM_CAST(BeginAuthSessionResult);
 
+VARIANT_ENUM_CAST(CheckFileSignature);
+
 VARIANT_ENUM_CAST(DenyReason);
 
 VARIANT_ENUM_CAST(FilePathType);
+VARIANT_ENUM_CAST(FloatingGamepadTextInputMode);
 
 VARIANT_ENUM_CAST(GameIDType);
+VARIANT_ENUM_CAST(GamepadTextInputLineMode);
+VARIANT_ENUM_CAST(GamepadTextInputMode);
 
 VARIANT_ENUM_CAST(HTTPMethod);
 VARIANT_ENUM_CAST(HTTPStatusCode);
@@ -556,6 +611,8 @@ VARIANT_ENUM_CAST(ServerMode);
 VARIANT_ENUM_CAST(SocketConnectionType);
 VARIANT_ENUM_CAST(SocketState);
 VARIANT_ENUM_CAST(SteamAPIInitResult);
+
+VARIANT_ENUM_CAST(TextFilteringContext);
 
 VARIANT_ENUM_CAST(UGCContentDescriptorID);
 VARIANT_ENUM_CAST(UGCMatchingUGCType);
