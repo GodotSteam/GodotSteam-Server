@@ -403,7 +403,7 @@ protected:
 
 private:
 	// Main
-	String godotsteam_version = "4.4";
+	String godotsteam_version = "4.5";
 	bool is_init_success;
 
 	const SteamNetworkingConfigValue_t *convert_config_options(Dictionary config_options);
