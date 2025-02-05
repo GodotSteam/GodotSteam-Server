@@ -746,5 +746,46 @@ enum UserUGCListSortOrder {
 };
 
 
+// Utils enums
+enum CheckFileSignature {
+	CHECK_FILE_SIGNATURE_INVALID_SIGNATURE = k_ECheckFileSignatureInvalidSignature,
+	CHECK_FILE_SIGNATURE_VALID_SIGNATURE = k_ECheckFileSignatureValidSignature,
+	CHECK_FILE_SIGNATURE_FILE_NOT_FOUND = k_ECheckFileSignatureFileNotFound,
+	CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_APP = k_ECheckFileSignatureNoSignaturesFoundForThisApp,
+	CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_FILE = k_ECheckFileSignatureNoSignaturesFoundForThisFile
+};
+
+enum GamepadTextInputLineMode {
+	GAMEPAD_TEXT_INPUT_LINE_MODE_SINGLE_LINE = k_EGamepadTextInputLineModeSingleLine,
+	GAMEPAD_TEXT_INPUT_LINE_MODE_MULTIPLE_LINES = k_EGamepadTextInputLineModeMultipleLines
+};
+
+enum GamepadTextInputMode {
+	GAMEPAD_TEXT_INPUT_MODE_NORMAL = k_EGamepadTextInputModeNormal,
+	GAMEPAD_TEXT_INPUT_MODE_PASSWORD = k_EGamepadTextInputModePassword
+};
+
+enum FloatingGamepadTextInputMode {
+	FLOATING_GAMEPAD_TEXT_INPUT_MODE_SINGLE_LINE = k_EFloatingGamepadTextInputModeModeSingleLine,
+	FLOATING_GAMEPAD_TEXT_INPUT_MODE_MULTIPLE_LINES = k_EFloatingGamepadTextInputModeModeMultipleLines,
+	FLOATING_GAMEPAD_TEXT_INPUT_MODE_EMAIL = k_EFloatingGamepadTextInputModeModeEmail,
+	FLOATING_GAMEPAD_TEXT_INPUT_MODE_NUMERIC = k_EFloatingGamepadTextInputModeModeNumeric
+};
+
+enum APICallFailure {
+	STEAM_API_CALL_FAILURE_NONE = k_ESteamAPICallFailureNone,
+	STEAM_API_CALL_FAILURE_STEAM_GONE = k_ESteamAPICallFailureSteamGone,
+	STEAM_API_CALL_FAILURE_NETWORK_FAILURE = k_ESteamAPICallFailureNetworkFailure,
+	STEAM_API_CALL_FAILURE_INVALID_HANDLE = k_ESteamAPICallFailureInvalidHandle,
+	STEAM_API_CALL_FAILURE_MISMATCHED_CALLBACK = k_ESteamAPICallFailureMismatchedCallback
+};
+
+enum TextFilteringContext {
+	TEXT_FILTERING_CONTEXT_UNKNOWN = k_ETextFilteringContextUnknown,
+	TEXT_FILTERING_CONTEXT_GAME_CONTENT = k_ETextFilteringContextGameContent,
+	TEXT_FILTERING_CONTEXT_CHAT = k_ETextFilteringContextChat,
+	TEXT_FILTERING_CONTEXT_NAME = k_ETextFilteringContextName
+};
+
 
 #endif // GODOTSTEAM_SERVER_ENUMS_H

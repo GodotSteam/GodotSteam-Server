@@ -561,6 +561,18 @@
 				[b]Note:[/b] If the argument this_inventory_handle is omitted, GodotSteam will use the internally stored ID.
 			</description>
 		</method>
+		<method name="dismissFloatingGamepadTextInput">
+			<return type="bool" />
+			<description>
+				Dismisses the floating keyboard.
+			</description>
+		</method>
+		<method name="dismissGamepadTextInput">
+			<return type="bool" />
+			<description>
+				Dismisses the full-screen text input dialog.
+			</description>
+		</method>
 		<method name="downloadItem">
 			<return type="bool" />
 			<argument index="0" name="published_file_id" type="int" />
@@ -612,6 +624,15 @@
 				[b]Note:[/b] You must call [method SteamServer.destroyResult] on the provided inventory result when you are done with it.
 			</description>
 		</method>
+		<method name="filterText">
+			<return type="String" />
+			<argument index="0" name="context" type="int" enum="TextFilteringContext" />
+			<argument index="1" name="steam_id" type="int" />
+			<argument index="2" name="message" type="String" />
+			<description>
+				Filters the provided input message and returns the filtered result. Legally required filtering is always applied. Additional filtering may occur, based on the context and user settings.
+			</description>
+		</method>
 		<method name="flushMessagesOnConnection">
 			<return type="int" />
 			<argument index="0" name="connection_handle" type="int" />
@@ -631,6 +652,13 @@
 				[b]Note:[/b] You must call [method SteamServer.destroyResult] on the provided inventory result when you are done with it.
 			</description>
 		</method>
+		<method name="getAPICallFailureReason">
+			<return type="String" />
+			<description>
+				Used to get the failure reason of a call result.
+				The primary usage for this function is debugging. The failure reasons are typically out of your control and tend to not be very important. Just keep retrying your API Call until it works.
+			</description>
+		</method>
 		<method name="getAllItems">
 			<return type="int" />
 			<description>
@@ -646,6 +674,12 @@
 			<description>
 				Get the app dependencies associated with the given published_file_id. These are "soft" dependencies that are shown on the web. It is up to the application to determine whether an item can be used or not.
 				Triggers a [signal SteamServer.get_app_dependencies_result] callback.
+			</description>
+		</method>
+		<method name="getAppID">
+			<return type="int" />
+			<description>
+				Gets the App ID of the current process.
 			</description>
 		</method>
 		<method name="getAuthSessionTicket">
@@ -761,6 +795,12 @@
 				Fetch connection user data. Returns -1 if handle is invalid or if you haven't set any userdata on the connection.
 			</description>
 		</method>
+		<method name="getCurrentBatteryPower">
+			<return type="int" />
+			<description>
+				Gets the current amount of battery power on the computer.
+			</description>
+		</method>
 		<method name="getDetailedConnectionStatus">
 			<return type="Dictionary" />
 			<argument index="0" name="connection_handle" type="int" />
@@ -841,15 +881,6 @@
 				Gets a header value from an HTTP response. This must be called after the HTTP request has completed and returned the HTTP response via the [signal SteamServer.http_request_completed] call result associated with this request handle. You should first call [method SteamServer.getHTTPResponseHeaderSize] to check for the presence of the header and to get the size. You can then allocate a buffer with that size and pass it into this function. Here is a list of standard response header names on Wikipedia.
 			</description>
 		</method>
-		<method name="getHTTPStreamingResponseBodyData">
-			<return type="int" />
-			<argument index="0" name="request_handle" type="int" />
-			<argument index="1" name="offset" type="int" />
-			<argument index="2" name="buffer_size" type="int" />
-			<description>
-				Gets the body data from a streaming HTTP response. This must be called after data is received from a streaming HTTP request via the [signal SteamServer.http_request_completed] callback associated with this request handle. Typically you'll want to allocate a buffer associated with the request handle using the Content-Length HTTP response field to receive the total size of the data when you receive the header via [signal SteamServer.http_request_headers_received]. You can then append data to that buffer as it comes in. This is only for streaming HTTP requests which were sent with [method SteamServer.sendHTTPRequestAndStreamResponse]. Use [method SteamServer.getHTTPResponseBodyData] if you're using [method SteamServer.sendHTTPRequest].
-			</description>
-		</method>
 		<method name="getHostedDedicatedServerPOPId">
 			<return type="int" />
 			<description>
@@ -860,6 +891,47 @@
 			<return type="int" />
 			<description>
 				Returns the value of the SDR_LISTEN_PORT environment variable. This is the UDP server your server will be listening on. This will configured automatically for you in production environments.
+			</description>
+		</method>
+		<method name="getIPCCallCount">
+			<return type="int" />
+			<description>
+				Returns the number of IPC calls made since the last time this function was called.
+				Used for perf debugging so you can determine how many IPC (Inter-Process Communication) calls your game makes per frame.
+				Every IPC call is at minimum a thread context switch if not a process one so you want to rate control how often you do them.
+			</description>
+		</method>
+		<method name="getIPCountry">
+			<return type="String" />
+			<description>
+				Returns the 2 digit ISO 3166-1-alpha-2 format country code which client is running in. e.g "US" or "UK".
+				This is looked up via an IP-to-location database.
+			</description>
+		</method>
+		<method name="getImageRGBA">
+			<return type="Dictionary" />
+			<argument index="0" name="image" type="int" />
+			<description>
+				Gets the image bytes from an image handle.
+				Prior to calling this you must get the size of the image by calling [method SteamServer.getImageSize] so that you can create your buffer with an appropriate size. You can then allocate your buffer with the width and height as: width * height * 4. The image is provided in RGBA format. This call can be somewhat expensive as it converts from the compressed type (JPG, PNG, TGA) and provides no internal caching of returned buffer, thus it is highly recommended to only call this once per image handle and cache the result. This function is only used for Steam Avatars and Achievement images and those are not expected to change mid game.
+				The returned dictionary contains the following keys:
+				[codeblock]
+				┠╴buffer (PoolByteArray)
+				┖╴success (bool)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="getImageSize">
+			<return type="Dictionary" />
+			<argument index="0" name="image" type="int" />
+			<description>
+				Gets the size of a Steam image handle.
+				This must be called before calling [method SteamServer.getImageRGBA] to create an appropriately sized buffer that will be filled with the raw image data.
+				The returned dictionary contains the following keys:
+				[codeblock]
+				┠╴width (int)
+				┖╴height (int)
+				[/codeblock]
 			</description>
 		</method>
 		<method name="getItemDefinitionProperty">
@@ -953,9 +1025,8 @@
 		</method>
 		<method name="getItemsWithPrices">
 			<return type="Array" />
-			<argument index="0" name="length" type="int" />
 			<description>
-				After a successful call to [method SteamServer.requestPrices], you can call this method to get all the pricing for applicable item definitions. Use the result of [method SteamServer.getNumItemsWithPrices] as the the size of the arrays that you pass in.
+				After a successful call to [method SteamServer.requestPrices], you can call this method to get all the pricing for applicable item definitions.
 			</description>
 		</method>
 		<method name="getListenSocketAddress">
@@ -1183,9 +1254,9 @@
 			<argument index="1" name="index" type="int" />
 			<description>
 				Available in SDK v1.51.
-			Retrieve the number of tags for an individual workshop item after receiving a querying UGC call result.
-			You can then call [method SteamServer.getQueryUGCTag] to get the tag name or [method SteamServer.getQueryUGCTagDisplayName] to get the localized tag string (if any).
-			[b]Note:[/b] This must only be called with the handle obtained from a successful [signal SteamServer.ugc_query_completed] call result.
+				Retrieve the number of tags for an individual workshop item after receiving a querying UGC call result.
+				You can then call [method SteamServer.getQueryUGCTag] to get the tag name or [method SteamServer.getQueryUGCTagDisplayName] to get the localized tag string (if any).
+				[b]Note:[/b] This must only be called with the handle obtained from a successful [signal SteamServer.ugc_query_completed] call result.
 			</description>
 		</method>
 		<method name="getQueryUGCPreviewURL">
@@ -1350,6 +1421,24 @@
 				[b]Note:[/b] If the argument this_inventory_handle is omitted, GodotSteam will use the internally stored ID.
 			</description>
 		</method>
+		<method name="getSecondsSinceAppActive">
+			<return type="int" />
+			<description>
+				Returns the number of seconds since the application was active.
+			</description>
+		</method>
+		<method name="getSecondsSinceComputerActive">
+			<return type="int" />
+			<description>
+				Returns the number of seconds since the user last moved the mouse.
+			</description>
+		</method>
+		<method name="getServerRealTime">
+			<return type="int" />
+			<description>
+				Returns the Steam server time in Unix epoch format. (Number of seconds since Jan 1, 1970 UTC).
+			</description>
+		</method>
 		<method name="getServerSteamID">
 			<return type="int" />
 			<description>
@@ -1377,6 +1466,14 @@
 			<argument index="0" name="steam_id" type="int" />
 			<description>
 				Convert a SteamID64 into a SteamID.
+			</description>
+		</method>
+		<method name="getSteamUILanguage">
+			<return type="String" />
+			<description>
+				Returns the language the steam client is running in.
+				You probably want [method SteamServer.getCurrentGameLanguage] instead, this should only be used in very special cases.
+				For a full list of languages see Supported Languages in Valve's documentation.
 			</description>
 		</method>
 		<method name="getSubscribedItems">
@@ -1497,6 +1594,13 @@
 				Indicate our desire to be ready participate in authenticated communications. If we are currently not ready, then steps will be taken to obtain the necessary certificates. (This includes a certificate for us, as well as any CA certificates needed to authenticate peers.)
 			</description>
 		</method>
+		<method name="initFilterText">
+			<return type="bool" />
+			<description>
+				Initializes text filtering, loading dictionaries for the language the game is running in.
+				Users can customize the text filter behavior in their Steam Account preferences.
+			</description>
+		</method>
 		<method name="initRelayNetworkAccess">
 			<return type="void" />
 			<description>
@@ -1514,6 +1618,18 @@
 				This is helpful if you want to support multiple game servers running out of the same install folder.
 			</description>
 		</method>
+		<method name="isAPICallCompleted">
+			<return type="Dictionary" />
+			<description>
+				Checks if an API Call is completed. Provides the backend of the CallResult wrapper.
+				It's generally not recommended that you use this yourself.
+				The returned dictionary contains the following keys:
+				[codeblock]
+				┠╴completed (bool)
+				┖╴failed (bool)
+				[/codeblock]
+			</description>
+		</method>
 		<method name="isAnonAccount">
 			<return type="bool" />
 			<argument index="0" name="steam_id" type="int" />
@@ -1526,12 +1642,6 @@
 			<argument index="0" name="steam_id" type="int" />
 			<description>
 				Is this an anonymous user account? Used to create an account or reset a password, but do not try to do this.
-			</description>
-		</method>
-		<method name="isServerSecure">
-			<return type="bool" />
-			<description>
-				Valve has no notes about this but we assume it just returns true/false if the server is considered secure.
 			</description>
 		</method>
 		<method name="isChatAccount">
@@ -1569,8 +1679,50 @@
 				Is this a lobby account ID?
 			</description>
 		</method>
-
-
+		<method name="isOverlayEnabled">
+			<return type="bool" />
+			<description>
+				Checks if the Steam Overlay is running and the user can access it.
+				The overlay process could take a few seconds to start and hook the game process, so this function will initially return false while the overlay is loading.
+			</description>
+		</method>
+		<method name="isServerSecure">
+			<return type="bool" />
+			<description>
+				Valve has no notes about this but we assume it just returns true/false if the server is considered secure.
+			</description>
+		</method>
+		<method name="isSteamChinaLauncher">
+			<return type="bool" />
+			<description>
+				Returns whether the current launcher is a Steam China launcher. You can cause the client to behave as the Steam China launcher by adding [code]-dev -steamchina[/code] to the command line when running Steam.
+			</description>
+		</method>
+		<method name="isSteamInBigPictureMode">
+			<return type="bool" />
+			<description>
+				Checks if Steam and the Steam Overlay are running in Big Picture mode.
+				Games must be launched through the Steam client to enable the Big Picture overlay. During development, a game can be added as a non-steam game to the developers library to test this feature.
+			</description>
+		</method>
+		<method name="isSteamRunningInVR">
+			<return type="bool" />
+			<description>
+				Checks if Steam is running in VR mode.
+			</description>
+		</method>
+		<method name="isSteamRunningOnSteamDeck">
+			<return type="bool" />
+			<description>
+				Checks if Steam is running on a Steam Deck device.
+			</description>
+		</method>
+		<method name="isVRHeadsetStreamingEnabled">
+			<return type="bool" />
+			<description>
+				Checks if the HMD view will be streamed via Steam In-Home Streaming.
+			</description>
+		</method>
 		<method name="loadItemDefinitions">
 			<return type="bool" />
 			<description>
@@ -1604,6 +1756,13 @@
 				Checks if the current user's Steam client is connected to the Steam servers.
 				If it's not then no real-time services provided by the Steamworks API will be enabled. The Steam client will automatically be trying to recreate the connection as often as possible. When the connection is restored a [signal SteamServer.steam_server_connected] callback will be posted.
 				You usually don't need to check for this yourself. All of the API calls that rely on this will check internally. Forcefully disabling stuff when the player loses access is usually not a very good experience for the player and you could be preventing them from accessing APIs that do not need a live connection to SteamServer.
+			</description>
+		</method>
+		<method name="overlayNeedsPresent">
+			<return type="bool" />
+			<description>
+				Checks if the Overlay needs a present. Only required if using event driven render updates.
+				Typically this call is unneeded if your game has a constantly running frame loop that calls the D3D Present API, or OGL SwapBuffers API every frame as is the case in most games. However, if you have a game that only refreshes the screen on an event driven basis then that can break the overlay, as it uses your Present/SwapBuffers calls to drive it's internal frame loop and it may also need to Present() to the screen any time a notification happens or when the overlay is brought up over the game by a user. You can use this API to ask the overlay if it currently need a present in that case, and then you can check for this periodically (roughly 33hz is desirable) and make sure you refresh the screen with Present or SwapBuffers to allow the overlay to do it's work.
 			</description>
 		</method>
 		<method name="parsePingLocationString">
@@ -1893,16 +2052,6 @@
 				A note for those familiar with TCP/IP ports, or converting an existing codebase that opened multiple sockets: You might notice that there is only one channel, and with TCP/IP each endpoint has a port number. You can think of the channel number as the destination port. If you need each message to also include a source port (so the recipient can route the reply), then just put that in your message. That is essentially how UDP works!
 			</description>
 		</method>
-		<method name="sendMessages">
-			<return type="void" />
-			<argument index="0" name="messages" type="int" />
-			<argument index="1" name="data" type="PoolByteArray" />
-			<argument index="2" name="connection_handle" type="int" />
-			<argument index="3" name="flags" type="int" />
-			<description>
-				Send one or more messages without copying the message payload. This is the most efficient way to send messages.
-			</description>
-		</method>
 		<method name="sendP2PPacket">
 			<return type="bool" />
 			<argument index="0" name="remote_steam_id" type="int" />
@@ -2101,6 +2250,13 @@
 			<description>
 				Sets the game description. Setting this to the full name of your game is recommended.
 				b]Note:[/b] This is required for all game servers and can only be set before calling [method SteamServer.logOn] or [method SteamServer.logOnAnonymous].
+			</description>
+		</method>
+		<method name="setGameLauncherMode">
+			<return type="void" />
+			<argument index="0" name="mode" type="bool" />
+			<description>
+				In game launchers that don't have controller support you can call this to have Steam Input translate the controller input into mouse/kb to navigate the launcher.
 			</description>
 		</method>
 		<method name="setGameTags">
@@ -2366,6 +2522,27 @@
 				[b]Note:[/b] This is required for all game servers and can only be set before calling [method SteamServer.logOn] or [method SteamServer.logOnAnonymous].
 			</description>
 		</method>
+		<method name="setOverlayNotificationInset">
+			<return type="void" />
+			<argument index="0" name="horizontal" type="int" />
+			<argument index="1" name="vertical" type="int" />
+			<description>
+				Sets the inset of the overlay notification from the corner specified by [method SteamServer.setOverlayNotificationPosition]. Integer should be number of pixels.
+			</description>
+		</method>
+		<method name="setOverlayNotificationPosition">
+			<return type="void" />
+			<argument index="0" name="pos" type="int" />
+			<description>
+				Set the position where overlay shows notifications. Accepts the following integer inputs:
+				[codeblock]
+				• 0 / Top Left
+				• 1 / Top Right
+				• 2 / Bottom Left
+				• 3 / Bottom Right
+				[/codeblock]
+			</description>
+		</method>
 		<method name="setPasswordProtected">
 			<return type="void" />
 			<argument index="0" name="password_protected" type="bool" />
@@ -2611,6 +2788,36 @@
 				Sets / updates the value of a given stat for the specified user.
 			</description>
 		</method>
+		<method name="setVRHeadsetStreamingEnabled">
+			<return type="void" />
+			<argument index="0" name="enabled" type="bool" />
+			<description>
+				Set whether the HMD content will be streamed via Steam In-Home Streaming.
+			</description>
+		</method>
+		<method name="showFloatingGamepadTextInput">
+			<return type="bool" />
+			<argument index="0" name="input_mode" type="int" enum="FloatingGamepadTextInputMode" />
+			<argument index="1" name="text_field_x_position" type="int" />
+			<argument index="2" name="text_field_y_position" type="int" />
+			<argument index="3" name="text_field_width" type="int" />
+			<argument index="4" name="text_field_height" type="int" />
+			<description>
+				Opens a floating keyboard over the game content and sends OS keyboard keys directly to the game.
+				The text field position is specified in pixels relative the origin of the game window and is used to position the floating keyboard in a way that doesn't cover the text field.
+			</description>
+		</method>
+		<method name="showGamepadTextInput">
+			<return type="bool" />
+			<argument index="0" name="input_mode" type="int" enum="GamepadTextInputMode" />
+			<argument index="1" name="line_input_mode" type="int" enum="GamepadTextInputLineMode" />
+			<argument index="2" name="description" type="String" />
+			<argument index="3" name="max_text" type="int" />
+			<argument index="4" name="preset_text" type="String" />
+			<description>
+				Activates the Big Picture text input dialog which only supports gamepad input.
+			</description>
+		</method>
 		<method name="showWorkshopEULA">
 			<return type="bool" />
 			<description>
@@ -2651,6 +2858,12 @@
 			<return type="void" />
 			<description>
 				Starts a transaction request to update dynamic properties on items for the current user. This call is rate-limited by user, so property modifications should be batched as much as possible (e.g. at the end of a map or game session). After calling [method SteamServer.setProperty] or [method SteamServer.removeProperty] for all the items that you want to modify, you will need to call [method SteamServer.submitUpdateProperties] to send the request to the Steam servers. A [signal SteamServer.inventory_result_ready] callback will be fired with the results of the operation.
+			</description>
+		</method>
+		<method name="startVRDashboard">
+			<return type="void" />
+			<description>
+				Ask SteamUI to create and render its OpenVR dashboard.
 			</description>
 		</method>
 		<method name="stopPlaytimeTracking">
@@ -2815,10 +3028,21 @@
 				The result of a call to [method SteamServer.addAppDependency].
 			</description>
 		</signal>
+		<signal name="app_resuming_from_suspend">
+			<description>
+				Sent after the device returns from sleep/suspend mode.
+			</description>
+		</signal>
 		<signal name="associate_clan">
 			<argument index="0" name="result" type="int" />
 			<description>
 				Sent as a reply to [method SteamServer.associateWithClan].
+			</description>
+		</signal>
+		<signal name="check_file_signature">
+			<argument index="0" name="signature" type="String" />
+			<description>
+				Call result for [method SteamServer.checkFileSignature].
 			</description>
 		</signal>
 		<signal name="client_approved">
@@ -2878,7 +3102,7 @@
 		<signal name="file_read_async_complete">
 			<argument index="0" name="file_read" type="Dictionary" />
 			<description>
-				Response when reading a file with [method Steam.fileReadAsync].
+				Response when reading a file with [method SteamServer.fileReadAsync].
 			</description>
 		</signal>
 		<signal name="file_share_result">
@@ -2892,7 +3116,26 @@
 		<signal name="file_write_async_complete">
 			<argument index="0" name="result" type="int" />
 			<description>
-				Response when writing a file asyncrounously with [method Steam.fileWriteAsync].
+				Response when writing a file asyncrounously with [method SteamServer.fileWriteAsync].
+			</description>
+		</signal>
+		<signal name="filter_text_dictionary_changed">
+			<argument index="0" name="language" type="int" />
+			<description>
+				Sent when the text filtering dictionary has changed languages.
+			</description>
+		</signal>
+		<signal name="floating_gamepad_text_input_dismissed">
+			<description>
+				Called when the floating keyboard invoked from [method SteamServer.showFloatingGamepadTextInput] has been closed.
+			</description>
+		</signal>
+		<signal name="gamepad_text_input_dismissed">
+			<argument index="0" name="submitted" type="bool" />
+			<argument index="1" name="entered_text" type="String" />
+			<argument index="2" name="app_id" type="int" />
+			<description>
+				Called when the Big Picture gamepad text input has been closed.
 			</description>
 		</signal>
 		<signal name="get_app_dependencies_result">
@@ -2971,6 +3214,7 @@
 			<argument index="0" name="result" type="int" />
 			<argument index="1" name="inventory_handle" type="int" />
 			<description>
+				This is fired whenever an inventory result transitions from RESULT_PENDING to any other completed state, see [method SteamServer.getResultStatus] for the complete list of states. There will always be exactly one callback per handle.
 			</description>
 		</signal>
 		<signal name="inventory_start_purchase_result">
@@ -2979,6 +3223,11 @@
 			<argument index="2" name="transaction_id" type="int" />
 			<description>
 				This is fired whenever an inventory result transitions from k_EResultPending to any other completed state, see [method SteamServer.getResultStatus] for the complete list of states. There will always be exactly one callback per handle.
+			</description>
+		</signal>
+		<signal name="ip_country">
+			<description>
+				Called when the country of the user changed. The country should be updated with [method SteamServer.getIPCountry].
 			</description>
 		</signal>
 		<signal name="item_created">
@@ -3023,6 +3272,12 @@
 			<description>
 				One or more files for this app have changed locally after syncing to remote session changes.
 				[b]Note:[/b] only posted if this happens during the local app session.
+			</description>
+		</signal>
+		<signal name="low_power">
+			<argument index="0" name="power" type="int" />
+			<description>
+				Called when running on a laptop and less than 10 minutes of battery is left, and then fires then every minute afterwards.
 			</description>
 		</signal>
 		<signal name="network_authentication_status">
@@ -3172,14 +3427,19 @@
 			<description>
 				Callback indicating that a user's stats have been unloaded.
 				Call [method SteamServer.requestUserStats] again to access stats for this user.
-
 			</description>
 		</signal>
-		<signal name="steamworks_error">
-			<argument index="0" name="failed_signal" type="String" />
-			<argument index="1" name="io failure" type="String" />
+		<signal name="steam_api_call_completed">
+			<argument index="0" name="async_call" type="int" />
+			<argument index="1" name="callback" type="int" />
+			<argument index="2" name="parameter" type="int" />
 			<description>
-				Intended to serve as generic error messaging for failed call results.
+				Called when a SteamAPICall_t has completed or failed.
+			</description>
+		</signal>
+		<signal name="steam_shutdown">
+			<description>
+				Called when Steam wants to shut down.
 			</description>
 		</signal>
 		<signal name="stop_playtime_tracking">
@@ -3226,6 +3486,15 @@
 			<argument index="0" name="app_id" type="int" />
 			<description>
 				Signal that the list of subscribed items changed.
+			</description>
+		</signal>
+		<signal name="validate_auth_ticket_response">
+			<argument index="0" name="steam_id" type="int" />
+			<argument index="1" name="response" type="int" />
+			<argument index="2" name="owner_id" type="int" />
+			<description>
+				Called when an auth ticket has been validated.
+				Emits signal in response to function [method SteamServer.beginAuthSession].
 			</description>
 		</signal>
 		<signal name="workshop_eula_status">
@@ -3383,6 +3652,16 @@
 		</constant>
 		<constant name="ACCOUNT_TYPE_MAX" value="11" enum="AccountType">
 		</constant>
+		<constant name="STEAM_API_CALL_FAILURE_NONE" value="-1" enum="APICallFailure">
+		</constant>
+		<constant name="STEAM_API_CALL_FAILURE_STEAM_GONE" value="0" enum="APICallFailure">
+		</constant>
+		<constant name="STEAM_API_CALL_FAILURE_NETWORK_FAILURE" value="1" enum="APICallFailure">
+		</constant>
+		<constant name="STEAM_API_CALL_FAILURE_INVALID_HANDLE" value="2" enum="APICallFailure">
+		</constant>
+		<constant name="STEAM_API_CALL_FAILURE_MISMATCHED_CALLBACK" value="3" enum="APICallFailure">
+		</constant>
 		<constant name="AUTH_SESSION_RESPONSE_OK" value="0" enum="AuthSessionResponse">
 		</constant>
 		<constant name="AUTH_SESSION_RESPONSE_USER_NOT_CONNECTED_TO_STEAM" value="1" enum="AuthSessionResponse">
@@ -3416,6 +3695,16 @@
 		<constant name="BEGIN_AUTH_SESSION_RESULT_GAME_MISMATCH" value="4" enum="BeginAuthSessionResult">
 		</constant>
 		<constant name="BEGIN_AUTH_SESSION_RESULT_EXPIRED_TICKET" value="5" enum="BeginAuthSessionResult">
+		</constant>
+		<constant name="CHECK_FILE_SIGNATURE_INVALID_SIGNATURE" value="0" enum="CheckFileSignature">
+		</constant>
+		<constant name="CHECK_FILE_SIGNATURE_VALID_SIGNATURE" value="1" enum="CheckFileSignature">
+		</constant>
+		<constant name="CHECK_FILE_SIGNATURE_FILE_NOT_FOUND" value="2" enum="CheckFileSignature">
+		</constant>
+		<constant name="CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_APP" value="3" enum="CheckFileSignature">
+		</constant>
+		<constant name="CHECK_FILE_SIGNATURE_NO_SIGNATURES_FOUND_FOR_THIS_FILE" value="4" enum="CheckFileSignature">
 		</constant>
 		<constant name="DENY_INVALID" value="0" enum="DenyReason">
 		</constant>
@@ -3455,6 +3744,14 @@
 		</constant>
 		<constant name="FILE_PATH_TYPE_API_FILENAME" value="2" enum="FilePathType">
 		</constant>
+		<constant name="FLOATING_GAMEPAD_TEXT_INPUT_MODE_SINGLE_LINE" value="0" enum="FloatingGamepadTextInputMode">
+		</constant>
+		<constant name="FLOATING_GAMEPAD_TEXT_INPUT_MODE_MULTIPLE_LINES" value="1" enum="FloatingGamepadTextInputMode">
+		</constant>
+		<constant name="FLOATING_GAMEPAD_TEXT_INPUT_MODE_EMAIL" value="2" enum="FloatingGamepadTextInputMode">
+		</constant>
+		<constant name="FLOATING_GAMEPAD_TEXT_INPUT_MODE_NUMERIC" value="3" enum="FloatingGamepadTextInputMode">
+		</constant>
 		<constant name="GAME_TYPE_APP" value="0" enum="GameIDType">
 		</constant>
 		<constant name="GAME_TYPE_GAME_MOD" value="1" enum="GameIDType">
@@ -3462,6 +3759,14 @@
 		<constant name="GAME_TYPE_SHORTCUT" value="2" enum="GameIDType">
 		</constant>
 		<constant name="GAME_TYPE_P2P" value="3" enum="GameIDType">
+		</constant>
+		<constant name="GAMEPAD_TEXT_INPUT_LINE_MODE_SINGLE_LINE" value="0" enum="GamepadTextInputLineMode">
+		</constant>
+		<constant name="GAMEPAD_TEXT_INPUT_LINE_MODE_MULTIPLE_LINES" value="1" enum="GamepadTextInputLineMode">
+		</constant>
+		<constant name="GAMEPAD_TEXT_INPUT_MODE_NORMAL" value="0" enum="GamepadTextInputMode">
+		</constant>
+		<constant name="GAMEPAD_TEXT_INPUT_MODE_PASSWORD" value="1" enum="GamepadTextInputMode">
 		</constant>
 		<constant name="HTTP_METHOD_INVALID" value="0" enum="HTTPMethod">
 		</constant>
@@ -4330,6 +4635,14 @@
 		<constant name="STEAM_API_INIT_RESULT_NO_STEAM_CLIENT" value="2" enum="SteamAPIInitResult">
 		</constant>
 		<constant name="STEAM_API_INIT_RESULT_VERSION_MISMATCH" value="3" enum="SteamAPIInitResult">
+		</constant>
+		<constant name="TEXT_FILTERING_CONTEXT_UNKNOWN" value="0" enum="TextFilteringContext">
+		</constant>
+		<constant name="TEXT_FILTERING_CONTEXT_GAME_CONTENT" value="1" enum="TextFilteringContext">
+		</constant>
+		<constant name="TEXT_FILTERING_CONTEXT_CHAT" value="2" enum="TextFilteringContext">
+		</constant>
+		<constant name="TEXT_FILTERING_CONTEXT_NAME" value="3" enum="TextFilteringContext">
 		</constant>
 		<constant name="UGC_CONTENT_DESCRIPTOR_NUDITY_OR_SEXUAL_CONTENT" value="1" enum="UGCContentDescriptorID">
 		</constant>
