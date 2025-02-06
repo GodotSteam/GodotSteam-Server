@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
 
     name: Windows ${{ matrix.name }}
@@ -67,13 +67,6 @@ jobs:
           repository: ${{ secrets.steamworks_sdk_repo }}
           token: ${{ secrets.steamworks_sdk_repo_token }}
           ref: ${{ inputs.steamworks_sdk_tag }}
-
-      - name: Install gcc-multilib
-        if: ${{ startsWith(matrix.arch, 'x86_32') }}
-        shell: sh
-        run: |
-          sudo apt-get update
-          sudo apt install gcc-multilib g++-multilib
 
       # Get that cache money
       - name: Setup Build Cache

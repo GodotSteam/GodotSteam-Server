@@ -97,7 +97,7 @@ jobs:
         with:
           buildroot: "${{ github.workspace }}/x86_64-godot-linux-gnu_sdk-buildroot/bin"
           arch: ${{ matrix.arch }}
-          platform: linuxbsd
+          platform: linux
           target: template_debug
 
       - name: Upload Server Debug Template
@@ -111,7 +111,7 @@ jobs:
         with:
           buildroot: "${{ github.workspace }}/x86_64-godot-linux-gnu_sdk-buildroot/bin"
           arch: ${{ matrix.arch }}
-          platform: linuxbsd
+          platform: linux
           target: template_release
 
       - name: Upload Server Release Template
