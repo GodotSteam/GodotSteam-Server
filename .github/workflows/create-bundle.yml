@@ -117,6 +117,10 @@ jobs:
           name: windows32-steam
           path: files
 
+      - name: Create Template Bundle
+        run: |
+          zip -j godotsteam_server-gdextension-plugin-${{ inputs.godotsteam_server_version }}.zip files/*
+      
       # Zip stuff
       - name: Upload Artifacts Bundle
         uses: ./.github/actions/upload-artifact
