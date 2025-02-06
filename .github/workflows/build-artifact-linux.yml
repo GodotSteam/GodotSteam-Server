@@ -104,7 +104,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-debug-template
-          path: ./bin/libgodotsteam.linux.template_debug.x86_64.so
+          path: ./bin/libgodotsteam_server.linux.template_debug.x86_64.so
 
       - name: Server Release Template Compilation (target=template_release)
         uses: ./.github/actions/build-godot
@@ -118,7 +118,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-release-template
-          path: ./bin/libgodotsteam.linux.template_release.x86_64.so
+          path: ./bin/libgodotsteam_server.linux.template_release.x86_64.so
 
       - name: Clear bin
         run: |

@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-debug-template
-          path: ./bin/libgodotsteam.windows.template_debug.x86_64.dll
+          path: ./bin/libgodotsteam_server.windows.template_debug.x86_64.dll
 
       - name: ${{ matrix.steam-redist-bits }}-bit Server Release Template Compilation (target=template_release)
         uses: ./.github/actions/build-godot
@@ -105,7 +105,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-release-template
-          path: ./bin/libgodotsteam.windows.template_release.x86_64.dll
+          path: ./bin/libgodotsteam_server.windows.template_release.x86_64.dll
 
       - name: Clear bin
         shell: bash
