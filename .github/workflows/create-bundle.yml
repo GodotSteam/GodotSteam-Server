@@ -1,14 +1,6 @@
 on:
   workflow_call:
     inputs:
-      steamworks_sdk_tag:
-        required: true
-        type: string
-
-      godot_cpp_version:
-        required: true
-        type: string
-
       godotsteam_server_version:
         required: true
         type: string
