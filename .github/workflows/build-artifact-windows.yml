@@ -29,14 +29,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Editor and Templates (64-bit)
+          - name: 64-bit Templates
             cache-name: windows64
             arch: x86_64
             steam-redist: steam_api64.dll
             steam-redist-bin: win64/
             steam-redist-bits: 64
 
-          - name: Editor and Templates (32-bit)
+          - name: 32-bit Templates
             cache-name: windows32
             arch: x86_32
             steam-redist: steam_api.dll
@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-debug-template
-          path: ./bin/libgodotsteam_server.windows.template_debug.x86_64.dll
+          path: ./bin/libgodotsteam_server.windows.template_debug.${{ matrix.arch }}.dll
 
       - name: ${{ matrix.steam-redist-bits }}-bit Server Release Template Compilation (target=template_release)
         uses: ./.github/actions/build-godot
@@ -105,7 +105,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: ${{ matrix.cache-name }}-server-release-template
-          path: ./bin/libgodotsteam_server.windows.template_release.x86_64.dll
+          path: ./bin/libgodotsteam_server.windows.template_release.${{ matrix.arch }}.dll
 
       - name: Clear bin
         shell: bash
