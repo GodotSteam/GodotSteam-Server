@@ -24,12 +24,10 @@ Current Build
 ---
 You can [download pre-compiled versions of this repo here](https://github.com/GodotSteam/GodotSteam-Server/releases).
 
-**Version 4.5 Changes**
-- Added: missing Utils class: functions, enums, constants
-- Changed: minor clean-ups
-- Fixed: wrong accessor for Networking Sockets, thanks to ***Michael Janeway***
-- Fixed: missing callback fro `validate_auth_ticket_response`, thanks to ***Michael Janeway***
-- Fixed: all wronge accessors for all other class functions
+**Version 4.5.1 Changes**
+- Changed: updated docs
+- Changed: minor changes to match godot4 branch
+- Changed: `getItemDefinitionProperty` now returns dictionary, thanks to ***gkwaerp***
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server4/).
 
@@ -48,6 +46,7 @@ GodotSteam Version | Broken Compatibility
 ---|---
 4.3| Networking identity system removed, replaced with Steam IDs
 4.4 | sendMessages returns an Array
+4.5.1 | getItemDefinitionProperty return a dictionary
 
 Known Issues
 ---
