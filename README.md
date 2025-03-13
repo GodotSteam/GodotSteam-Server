@@ -45,7 +45,8 @@ Versions of GodotSteam that have compatibility breaks introduced.
 GodotSteam Version | Broken Compatibility
 ---|---
 3.3| Networking identity system removed, replaced with Steam IDs
-4.4 | sendMessages returns an Array
+3.4 | sendMessages returns an Array
+3.5.1 | getItemDefinitionProperty return a dictionary
 
 Known Issues
 ---
