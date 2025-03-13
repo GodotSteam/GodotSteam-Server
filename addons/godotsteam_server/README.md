@@ -24,10 +24,8 @@ Current Build
 ---
 You can [download pre-compiled versions of this repo here](https://github.com/GodotSteam/GodotSteam-Server/releases).
 
-**Version 4.5.1 Changes**
-- Changed: updated docs
-- Changed: minor changes to match godot4 branch
-- Changed: `getItemDefinitionProperty` now returns dictionary, thanks to ***gkwaerp***
+**Version 4.5.2 Changes**
+- Fixed: crash when GodotSteam converts IP addresses internally
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server4/).
 
