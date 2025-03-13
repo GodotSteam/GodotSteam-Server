@@ -24,12 +24,10 @@ Current Build
 ---
 You can [download pre-compiled versions of this repo here](https://github.com/GodotSteam/GodotSteam-Server/releases).
 
-**Version 3.5 Changes**
-- Added: missing Utils class: functions, enums, constants
+**Version 3.5.1 Changes**
 - Changed: minor clean-ups
-- Fixed: wrong accessor for Networking Sockets, thanks to ***Michael Janesway***
-- Fixed: missing callback fro `validate_auth_ticket_response`, thanks to ***Michael Janesway***
-- Fixed: all wronge accessors for all other class functions
+- Fixed: crash when GodotSteam converts IP addresses internally
+
 
 [You can read more change-logs here](https://godotsteam.com/changelog/server3/).
 

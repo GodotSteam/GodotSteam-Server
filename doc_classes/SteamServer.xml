@@ -935,7 +935,7 @@
 			</description>
 		</method>
 		<method name="getItemDefinitionProperty">
-			<return type="String" />
+			<return type="Dictionary" />
 			<argument index="0" name="definition" type="int" />
 			<argument index="1" name="name" type="String" />
 			<description>
@@ -943,6 +943,12 @@
 				Note that some properties (for example, "name") may be localized and will depend on the current Steam language settings; see [method SteamServer.getCurrentGameLanguage]. Property names are always ASCII alphanumeric and underscores.
 				Pass in NULL for name to get a comma-separated list of available property names.
 				[b]Note:[/b] Call [method SteamServer.loadItemDefinitions] first, to ensure that items are ready to be used before calling [method SteamServer.getItemDefinitionProperty].
+				The returned dictionary contains the following keys:
+				[codeblock]
+				┠╴property (string)
+				┠╴success (bool)
+				[/codeblock]
+				The "success" flag is true on success; false indicating that the item definitions have not been loaded from the server, or no item definitions exist for the current application, or the property name was not found in the item definition.
 			</description>
 		</method>
 		<method name="getItemDownloadInfo">

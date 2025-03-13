@@ -149,15 +149,24 @@ SteamNetworkingIdentity SteamServer::getIdentityFromSteamID(uint64_t steam_id) {
 }
 
 // Convert a string IP address to an integer
-uint32 SteamServer::getIPFromString(String ip_string) {
+uint32 SteamServer::getIPFromString(const String &ip_string) {
 	uint32 ip_address = 0;
 
-	SteamNetworkingIPAddr this_address;
-	this_address.Clear();
-	
-	if (this_address.ParseString(ip_string.utf8().get_data())) {
-		ip_address = this_address.GetIPv4();
+	if(!ip_string.empty() || ip_string != "0"){
+		IP_Address address;
+		if(ip_string.is_valid_ip_address()){
+			address = ip_string;
+		}
+		else{
+			address = IP::get_singleton()->resolve_hostname(ip_string, IP::TYPE_IPV4);
+		}
+
+		if (address.is_valid() && !address.is_wildcard()) {
+			ERR_FAIL_COND_V_MSG(!address.is_ipv4(), 0, "[STEAM SERVER] Given IP address is not valid, setting to 0");
+			ip_address = *((uint32_t *)address.get_ipv4());
+		}
 	}
+
 	return ip_address;
 }
 
@@ -196,18 +205,14 @@ SteamNetworkingIPAddr SteamServer::getSteamIPFromString(String ip_string) {
 
 // Convert an integer IP address to a string
 String SteamServer::getStringFromIP(uint32 ip_integer) {
-	String ip_address = "";
-
-	SteamNetworkingIPAddr this_address;
-	this_address.Clear();
-
-	if (ip_integer > 0) {
-		this_address.SetIPv4(ip_integer, 0);
-		char this_ip[16];
-		this_address.ToString(this_ip, 16, false);
-		ip_address = String(this_ip);
-	}
-	return ip_address;
+	const int NBYTES = 4;
+    uint8 octet[NBYTES];
+    char ip_address[16];
+    for (int i = 0; i < NBYTES; i++) {
+        octet[i] = ip_integer >> (i * 8);
+    }
+    sprintf(ip_address, "%d.%d.%d.%d", octet[3], octet[2], octet[1], octet[0]);
+	return (String)ip_address;
 }
 
 // Convert a Steam IP Address to a string
@@ -979,13 +984,18 @@ int32 SteamServer::getAllItems() {
 }
 
 // Gets a string property from the specified item definition.  Gets a property value for a specific item definition.
-String SteamServer::getItemDefinitionProperty(uint32 definition, const String &name) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerInventory() == NULL, "", "[STEAM SERVER] Inventory class not found when calling: getItemDefinitionProperty");
+Dictionary SteamServer::getItemDefinitionProperty(uint32 definition, const String &name) {
+	Dictionary item_definition;
+	item_definition["property"] = "";
+	item_definition["success"] = false;
+	ERR_FAIL_COND_V_MSG(SteamInventory() == NULL, item_definition, "[STEAM] Inventory class not found when calling: getItemDefinitionProperty");
+	char buffer[STEAM_BUFFER_SIZE];
 	uint32 buffer_size = STEAM_BUFFER_SIZE;
-	char *buffer = new char[buffer_size];
-	SteamGameServerInventory()->GetItemDefinitionProperty(definition, name.utf8().get_data(), buffer, &buffer_size);
+	bool steam_success = SteamInventory()->GetItemDefinitionProperty(definition, name.utf8().get_data(), buffer, &buffer_size);
 	String property = String::utf8(buffer, buffer_size);
-	return property;
+	item_definition["property"] = property;
+	item_definition["success"] = steam_success;
+	return item_definition;
 }
 
 // After a successful call to RequestPrices, you can call this method to get the pricing for a specific item definition.
@@ -1267,27 +1277,27 @@ int32 SteamServer::triggerItemDrop(uint32 definition) {
 
 // This allows the game to specify accept an incoming packet.
 bool SteamServer::acceptP2PSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: acceptP2PSessionWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Networking class not found when calling: acceptP2PSessionWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
 	return SteamGameServerNetworking()->AcceptP2PSessionWithUser(steam_id);
 }
 
 // Allow or disallow P2P connections to fall back to being relayed through the Steam servers if a direct connection or NAT-traversal cannot be established.
 bool SteamServer::allowP2PPacketRelay(bool allow) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: allowP2PPacketRelay");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Networking class not found when calling: allowP2PPacketRelay");
 	return SteamGameServerNetworking()->AllowP2PPacketRelay(allow);
 }
 
 // Closes a P2P channel when you're done talking to a user on the specific channel.
 bool SteamServer::closeP2PChannelWithUser(uint64_t remote_steam_id, int channel) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PChannelWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Networking class not found when calling: closeP2PChannelWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
 	return SteamGameServerNetworking()->CloseP2PChannelWithUser(steam_id, channel);
 }
 
 // This should be called when you're done communicating with a user, as this will free up all of the resources allocated for the connection under-the-hood.
 bool SteamServer::closeP2PSessionWithUser(uint64_t remote_steam_id) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Game Server class not found when calling: closeP2PSessionWithUser");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, false, "[STEAM SERVER] Networking class not found when calling: closeP2PSessionWithUser");
 	CSteamID steam_id = createSteamID(remote_steam_id);
 	return SteamGameServerNetworking()->CloseP2PSessionWithUser(steam_id);
 }
@@ -1295,7 +1305,7 @@ bool SteamServer::closeP2PSessionWithUser(uint64_t remote_steam_id) {
 // Fills out a P2PSessionState_t structure with details about the connection like whether or not there is an active connection.
 Dictionary SteamServer::getP2PSessionState(uint64_t remote_steam_id) {
 	Dictionary result;
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: getP2PSessionState");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Networking class not found when calling: getP2PSessionState");
 	CSteamID steam_id = createSteamID(remote_steam_id);
 	P2PSessionState_t p2pSessionState;
 	if (SteamGameServerNetworking()->GetP2PSessionState(steam_id, &p2pSessionState)) {
@@ -1313,7 +1323,7 @@ Dictionary SteamServer::getP2PSessionState(uint64_t remote_steam_id) {
 
 // Calls IsP2PPacketAvailable() under the hood, returns the size of the available packet or zero if there is no such packet.
 uint32_t SteamServer::getAvailableP2PPacketSize(int channel) {
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, 0, "[STEAM SERVER] Game Server class not found when calling: getAvailableP2PPacketSize");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, 0, "[STEAM SERVER] Networking class not found when calling: getAvailableP2PPacketSize");
 	uint32_t message_size = 0;
 	return (SteamGameServerNetworking()->IsP2PPacketAvailable(&message_size, channel)) ? message_size : 0;
 }
@@ -1321,7 +1331,7 @@ uint32_t SteamServer::getAvailableP2PPacketSize(int channel) {
 // Reads in a packet that has been sent from another user via SendP2PPacket.
 Dictionary SteamServer::readP2PPacket(uint32_t packet, int channel) {
 	Dictionary result;
-	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Game Server class not found when calling: readP2PPacket");
+	ERR_FAIL_COND_V_MSG(SteamGameServerNetworking() == NULL, result, "[STEAM SERVER] Networking class not found when calling: readP2PPacket");
 	PoolByteArray data;
 	data.resize(packet);
 	CSteamID steam_id;
@@ -3088,11 +3098,11 @@ Dictionary SteamServer::getImageRGBA(int image) {
 	ERR_FAIL_COND_V_MSG(SteamGameServerUtils() == NULL, image_data, "[STEAM SERVER] Utils class not found when calling: getImageRGBA");
 	uint32 width;
 	uint32 height;
-	image_data["success"] = SteamUtils()->GetImageSize(image, &width, &height);
+	image_data["success"] = SteamGameServerUtils()->GetImageSize(image, &width, &height);
 	if (image_data["success"]) {
 		PoolByteArray data;
 		data.resize(width * height * 4);
-		if (SteamUtils()->GetImageRGBA(image, data.write().ptr(), data.size())) {
+		if (SteamGameServerUtils()->GetImageRGBA(image, data.write().ptr(), data.size())) {
 			image_data["buffer"] = data;
 		}
 	}
@@ -3567,8 +3577,8 @@ void SteamServer::gamepad_text_input_dismissed(GamepadTextInputDismissed_t *call
 	uint32 length = 0;
 	uint32_t app_id = call_data->m_unAppID;
 	if (was_submitted) {
-		SteamUtils()->GetEnteredGamepadTextInput(text, buffer_length);
-		length = SteamUtils()->GetEnteredGamepadTextLength();
+		SteamGameServerUtils()->GetEnteredGamepadTextInput(text, buffer_length);
+		length = SteamGameServerUtils()->GetEnteredGamepadTextLength();
 	}
 	emit_signal("gamepad_text_input_dismissed", was_submitted, String::utf8(text, (int)length), app_id);
 }
@@ -3619,10 +3629,10 @@ void SteamServer::filter_text_dictionary_changed(FilterTextDictionaryChanged_t *
 ///// GAME SERVER
 
 // Result when getting the latests stats and achievements for a user from the server.
-void SteamServer::stats_received(GSStatsReceived_t *callData, bool io_failure) {
+void SteamServer::stats_received(GSStatsReceived_t *call_data, bool io_failure) {
 	ERR_FAIL_COND_MSG(io_failure, "[STEAM SERVER] stats_received signal failed internally");
-	EResult result = callData->m_eResult;
-	uint64_t steam_id = callData->m_steamIDUser.ConvertToUint64();
+	EResult result = call_data->m_eResult;
+	uint64_t steam_id = call_data->m_steamIDUser.ConvertToUint64();
 	emit_signal("stats_received", result, steam_id);
 }
 

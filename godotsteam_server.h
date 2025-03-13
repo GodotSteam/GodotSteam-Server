@@ -18,12 +18,14 @@
 #include "steam/steamnetworkingfakeip.h"
 
 // Include Godot headers
+#include "core/dictionary.h"
+#include "core/io/ip.h"
+#include "core/io/ip_address.h"
+#include "core/method_bind_ext.gen.inc"
 #include "core/object.h"
-#include "scene/resources/texture.h"
 #include "core/reference.h"
 #include "scene/main/scene_tree.h"
-#include "core/dictionary.h"
-#include "core/method_bind_ext.gen.inc"
+#include "scene/resources/texture.h"
 
 // Include GodotSteam headers
 #include "godotsteam_server_constants.h"
@@ -153,7 +155,7 @@ public:
 	int32 exchangeItems(const PoolIntArray output_items, const PoolIntArray output_quantity, const PoolIntArray input_items, const PoolIntArray input_quantity);
 	int32 generateItems(const PoolIntArray items, const PoolIntArray quantity);
 	int32 getAllItems();
-	String getItemDefinitionProperty(uint32 definition, const String &name);
+	Dictionary getItemDefinitionProperty(uint32 definition, const String &name);
 	int32 getItemsByID(const PoolIntArray id_array);
 	Dictionary getItemPrice(uint32 definition);
 	Array getItemsWithPrices();
@@ -236,7 +238,7 @@ public:
 	void runNetworkingCallbacks();
 //	Array sendMessages(Array messages, uint32 connection_handle, int flags);	<------ Currently does not compile on Windows but does on Linux
 	Dictionary sendMessageToConnection(uint32 connection_handle, const PoolByteArray data, int flags);
-	Dictionary setCertificate(const PoolByteArray &certificate);		
+	Dictionary setCertificate(const PoolByteArray &certificate);
 	bool setConnectionPollGroup(uint32 connection_handle, uint32 poll_group);
 	void setConnectionName(uint32 peer, const String &name);
 
@@ -400,14 +402,14 @@ protected:
 
 private:
 	// Main
-	String godotsteam_version = "3.5";
+	String godotsteam_version = "3.5.1";
 	bool is_init_success;
 
 	const SteamNetworkingConfigValue_t *convert_config_options(Dictionary config_options);
 	CSteamID createSteamID(uint64_t steam_id, AccountType account_type = AccountType(-1));
 	SteamNetworkingIdentity getIdentityFromSteamID(uint64_t steam_id);
 	uint32 getIPFromSteamIP(SteamNetworkingIPAddr this_address);
-	uint32 getIPFromString(String ip_string);
+	uint32 getIPFromString(const String &ip_string);
 	uint64_t getSteamIDFromIdentity(SteamNetworkingIdentity this_identity);
 	SteamNetworkingIPAddr getSteamIPFromInt(uint32 ip_integer);
 	SteamNetworkingIPAddr getSteamIPFromString(String ip_string);
